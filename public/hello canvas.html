@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>hello canvas</title>
+        <meta name = "author" content = "10160311 邓珣">
+    </head>
+    <body>
+        <canvas id = "myFigure"/ width="500" height="500">
+        <script type = "text/javascript">
+            var rectangle = document.getElementById("myFigure");
+            var drawFigure = rectangle.getContext("2d");
+            //绘制矩形
+            drawFigure.fillStyle = "red";                       //设置颜色为红色
+            drawFigure.fillRect(0, 0, 100, 100);                //填充矩形
+            //绘制多段折线并填充线
+            drawFigure.lineWidth = 1;                           //设置线属性
+            drawFigure.strokeStyle = "black";
+            drawFigure.beginPath();                             //设置折线路径
+            drawFigure.moveTo(100, 100);
+            drawFigure.lineTo(200, 200);        
+            drawFigure.lineTo(50, 300);     
+            drawFigure.lineTo(400, 300);           
+            drawFigure.lineTo(100, 100);
+            drawFigure.closePath();
+            drawFigure.stroke();                                //绘制线条
+            drawFigure.fillStyle = "pink";                      //设置填充颜色
+            drawFigure.fill();                                  //填充
+            //绘制圆形
+            drawFigure.beginPath();                             //设置圆形路径
+            drawFigure.arc(200, 200, 50, Math.PI*2, 0, true);
+            drawFigure.closePath();
+            drawFigure.stroke();                                //绘制边框
+            drawFigure.fillStyle = "lightBlue";                 //设置填充颜色
+            drawFigure.fill();                                  //填充
+        </script>
+    </body>
+</html>
