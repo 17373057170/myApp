@@ -1,0 +1,156 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>跳马问题</title>
+        <script type = "text/Javascript">
+        //定义全局变量
+        var direction = 8;      //跳跃方向
+        //不同跳跃方向上的坐标增减
+        var dx = new Array ( 1, 2, 2, 1, -1, -2, -2, -1);
+        var dy = new Array ( 2, 1, -1, -2, -2, -1, 1, 2);
+        var numStep = 0;        //当前跳跃次数
+        var maxStep = 50;      //最多跳跃次数
+        //初始化路径数组
+        var path = new Array(maxStep + 1);
+        for ( var i = 0; i <= maxStep; i++)  path[i] = new Array(2);
+            
+        //定义函数
+        //记录已经跳过的位置
+        function Path( maxX, maxY, step, xy)
+        {
+            for ( var i = 0 ; i <= maxX ; i++)
+                for (var j = 0 ; j <= maxY ;j++)
+                    xy[i][j] = 0;
+            for ( var i = 1 ; i < step ; i++)   
+                xy[path[i][0]][path[i][1]] = 1;  //记录跳过的位置
+        }
+        //判断当前点是否跳过
+        function Judge(x, y, xy)
+        {
+            var judge = false;
+            if(xy[x][y] != 0)
+                judge = true;
+            else
+                xy[x][y] = 1;
+            return judge;       //当返回值为false时为可行路径
+        }
+        //将跳过的路线画出来
+        function DrawPath( maxX, maxY, path, step)
+        {
+            var interval = 30;  //棋盘每格的大小
+            var origin = 20, stationY = origin + interval*maxY;      //起点位置,棋盘原点位置
+            //画布长宽
+            var myWidth = maxX*interval + origin + 5;
+            var myHeight = maxY*interval +origin + 5;
+            //创建画布
+            var myBody = document.body;
+            var MyFigure = document.createElement("canvas");
+            Myid = "myFigure" + String(numStep);        //设置画布编号
+            MyFigure.id = Myid
+            MyFigure.width = myWidth;                   //设置画布长宽
+            MyFigure.height = myHeight;
+            myBody.appendChild(MyFigure);
+
+            //绘制棋盘
+            var rectangle = document.getElementById(Myid);
+            var drawFigure = rectangle.getContext("2d");
+            drawFigure.lineWidth = 1;                           //设置线属性
+            drawFigure.strokeStyle = "gray";
+            //绘制竖线
+            for ( var i = 0; i <= maxX ; i++)
+            {
+                drawFigure.moveTo(origin + interval*i, origin);
+                drawFigure.lineTo(origin + interval*i, origin + maxY*interval);
+                drawFigure.stroke();                                
+            }        
+            //绘制横线
+            for ( var i = 0 ; i <= maxY ; i++)
+            {
+                drawFigure.moveTo(origin , origin + interval*i);
+                drawFigure.lineTo(origin + maxX*interval, origin + interval*i);
+                drawFigure.stroke();                                
+            }
+
+            //绘制原点
+            var oriPoint = { x:origin + path[0][0] * interval, y:stationY - path[0][1]*interval, r:4};//设置原点
+            drawFigure.fillStyle = "blue";
+            drawFigure.beginPath();
+            drawFigure.arc(oriPoint.x, oriPoint.y, oriPoint.r, 0, Math.PI * 2, true);
+            drawFigure.fill();
+
+            //绘制路径
+            drawFigure.lineWidth = 1;                           //设置线属性
+            drawFigure.strokeStyle = "blue";
+            drawFigure.beginPath();                             //设置折线路径
+            drawFigure.moveTo(origin + path[0][0] * interval,stationY - path[0][1]*interval);
+            for ( var i = 0 ; i < step ; i++)
+            {
+                drawFigure.lineTo(origin + path[i][0] *interval,stationY - path[i][1]*interval)
+            }
+            drawFigure.lineTo(origin + path[0][0] * interval,stationY - path[0][1]*interval);
+            drawFigure.closePath();
+            drawFigure.stroke();                                //绘制线条
+        }
+        //递归寻找路线
+        function Jump( maxX, maxY,x, y ,step, xy)
+        {
+            var x1, y1;
+            Path( maxX, maxY, step, xy);        //记录已经跳过的点
+            //八个方向分别寻找路径
+            for (var n = 0; n < direction ; n++)
+            {
+                x1 = x + dx[n];     //完成跳跃之后的坐标
+                y1 = y + dy[n];
+                if ( x1 > maxX || y1 > maxY || x1 < 0 || y1 < 0)    continue;   //跳出边界，重新循环
+                if ( !Judge ( x1, y1, xy))  //判断是否跳过该点
+                {
+                    path[step][0] = x1;
+                    path[step][1] = y1;
+                    if ((x1 == path[0][0]) && (y1 == path[0][1]))       //判断是否跳回了起点
+                    {
+                        //跳回起点，打印路径
+                        numStep++;
+                        document.write("<br>" + "方案" + numStep + ":");
+                        //打印经过的点坐标
+                        for (var i = 0 ; i < step ; i++)    document.write("(" + path[i][0] + "," + path[i][1] + ") ->" );
+                        document.write("(" + path[step][0] + "," + path[step][1] + ")" + "<br>");
+                        DrawPath( maxX, maxY, path, step);      //绘制路径
+                    }//ifx1y1
+                    else    //未跳回起点，继续进行递归
+                        Jump ( maxX, maxY, x1, y1, step+1, xy);
+                }//ifJudge
+            }//for direction
+        }
+        //主函数
+        function entrance()
+        {
+            //获取棋盘边界数据
+            var maxX = parseInt(document.getElementById("column").value);
+            var maxY = parseInt(document.getElementById("row").value);
+            //获得原点数据
+            path[0][0] = document.getElementById("fromColumn").value;
+            path[0][1] = document.getElementById("fromRow").value;
+            //用户输入错误
+            if( maxX>10||maxY>10||path[0][0]>10||path[0][1]>10||path[0][0]>maxX||path[0][1]>maxY)   document.write("错误");          
+            //创建记录已经过点的数组
+            var xy = new Array(maxX+1);
+            for (var i = 0 ; i <= maxX ; i++ )  xy[i] = new Array(maxY + 1);
+            Jump ( maxX, maxY, parseInt(path[0][0]), parseInt(path[0][1]), 1, xy);
+            if ( numStep == 0)  document.write("没有路径");     //寻找不到路径
+        }
+        </script>
+    </head>
+    <body>
+        <form action="" method="get">
+            <p>棋牌大小</p>
+            棋盘行数:<input type="number" id="row"  min="0" max="10" />
+            棋盘列数:<input type="number" id="column" min="0" max="10" />
+            (行列数均不超过10)
+            <p>起跳位置</p>
+            起跳点所在行:<input type="number" id="fromRow"  min="0" max="10" />
+            起跳点所在列:<input type="number" id="fromColumn"  min="0" max="10"/>
+            <br><br>
+            <input type="button" name="confirm" value="确定" onclick="entrance()"/>
+        </form>
+    </body>
+</html>
