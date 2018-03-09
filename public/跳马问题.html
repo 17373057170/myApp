@@ -135,6 +135,7 @@
             //创建记录已经过点的数组
             var xy = new Array(maxX+1);
             for (var i = 0 ; i <= maxX ; i++ )  xy[i] = new Array(maxY + 1);
+            document.write("棋盘行" + maxY + ", 棋盘列" + maxX + "  原始位置(" + path[0][0] + "," + path[0][1] + ")<br>")
             Jump ( maxX, maxY, parseInt(path[0][0]), parseInt(path[0][1]), 1, xy);
             if ( numStep == 0)  document.write("没有路径");     //寻找不到路径
         }
