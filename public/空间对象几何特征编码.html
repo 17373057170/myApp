@@ -1,0 +1,42 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>空间对象几何特征编码</title>
+    </head>
+    <body>
+        <script type="text/Javascript">
+        //绘制16X16的网格
+        function createGrid(num)
+        {
+            //设置画布网格格式
+            var myCanvas = document.createElement("canvas");
+            myCanvas.id = "can" + String(num);
+            myCanvas.width = "325";
+            myCanvas.height = "325";
+            document.body.appendChild(myCanvas);
+            var interval = 20;
+            var origin = (num - 1) * 325;
+
+            //绘制网格
+            var drawFigure = myCanvas.getContext("2d");
+            drawFigure.lineWidth = 1;                           //设置线属性
+            drawFigure.strokeStyle = "gray";
+            //绘制竖线
+            for ( var i = 0; i <= 16 ; i++)
+            {
+                drawFigure.moveTo(origin + interval*i, 0);
+                drawFigure.lineTo(origin + interval*i, 16*interval);
+                drawFigure.stroke();                                
+            }        
+            //绘制横线
+            for ( var i = 0 ; i <= 16 ; i++)
+            {
+                drawFigure.moveTo(origin , interval*i);
+                drawFigure.lineTo(origin + 16*interval, interval*i);
+                drawFigure.stroke();                                
+            }
+        }
+        createGrid(1);
+        </script>
+    </body>
+</html>
