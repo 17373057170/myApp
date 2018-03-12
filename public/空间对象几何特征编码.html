@@ -1,42 +1,124 @@
-<!DOCTYPE HTML>
-<html>
-    <head>
-        <title>空间对象几何特征编码</title>
-    </head>
-    <body>
-        <script type="text/Javascript">
-        //绘制16X16的网格
-        function createGrid(num)
-        {
-            //设置画布网格格式
-            var myCanvas = document.createElement("canvas");
-            myCanvas.id = "can" + String(num);
-            myCanvas.width = "325";
-            myCanvas.height = "325";
+<html>    
+    <head>    
+        <title>空间对象几何特征编码</title>    
+    </head>    
+    <body>               
+        <input id="myNameFile" type="file" onchange="readNameFile()"/>  <br>  
+              
+        <script type="text/Javascript">   
+            var interval = 20;      //网格大小
+            var gLength = interval*16;  //一块网格大小
+            var myCanvas = document.createElement("canvas");       //设置画布
+            myCanvas.id = "can";
             document.body.appendChild(myCanvas);
-            var interval = 20;
-            var origin = (num - 1) * 325;
 
-            //绘制网格
-            var drawFigure = myCanvas.getContext("2d");
-            drawFigure.lineWidth = 1;                           //设置线属性
-            drawFigure.strokeStyle = "gray";
-            //绘制竖线
-            for ( var i = 0; i <= 16 ; i++)
-            {
-                drawFigure.moveTo(origin + interval*i, 0);
-                drawFigure.lineTo(origin + interval*i, 16*interval);
-                drawFigure.stroke();                                
-            }        
-            //绘制横线
-            for ( var i = 0 ; i <= 16 ; i++)
-            {
-                drawFigure.moveTo(origin , interval*i);
-                drawFigure.lineTo(origin + 16*interval, interval*i);
-                drawFigure.stroke();                                
+            var wordNum = 0;        //记录字数
+            var wordArray = new Array();
+ 
+            //将文件读取成字符串的形式
+            function readNameFile()
+            {  
+                var nameFile = document.getElementById("myNameFile").files[0];  
+                var reader=new FileReader();  
+                reader.readAsText(nameFile);  
+                reader.onload=function(e)  
+                {  
+                    var nameStr = this.result;      //读取文本  
+                    
+                    wordArray[wordNum] = nameStr2nameXY(nameStr);      //提取数字并存入数组
+                    wordNum++;  
+                    drawName(wordNum);
+                    //document.write(wordArray[0]);
+                    //draw(number);//画图  
+                }     
             }
-        }
-        createGrid(1);
-        </script>
-    </body>
-</html>
+            //字符转为数字
+            function nameStr2nameXY(nameStr)
+            {
+                var lineNum = 0;        //记录已经读取行数
+                var pointNum = 0;       //记录当前线点数
+                var nameXY = new Array();  
+                var strs = nameStr.split("\n");
+                for (var i = 0; i < strs.length ;i++)
+                {
+                    if( i == 0)   
+                    {
+                        nameXY[lineNum] = new Array();
+                        i++;
+                    }
+                    if(strs[i].indexOf("END") >= 0)
+                    {
+                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
+                            return nameXY;
+                        else    //线段结束
+                        {
+                            nameXY[++lineNum] = new Array();
+                            i += 2;
+                            pointNum = 0;
+                        }
+                    }
+
+                    //将该点记录进入数组
+                    var XY = strs[i].split(',');
+                    nameXY[lineNum][pointNum] = new Array(2);
+                    nameXY[lineNum][pointNum][0] = parseFloat(XY[0]);
+                    nameXY[lineNum][pointNum][1] = parseFloat(XY[1]);
+                    pointNum++;
+                }
+            }
+            //绘制
+            function drawName(wordNum)
+            {
+                createGrid(wordNum);
+                var drawFigure = myCanvas.getContext("2d");
+                drawFigure.lineWidth = 1;                           //设置线属性
+                drawFigure.strokeStyle = "blue";
+                for (var wNum = 0; wNum < wordNum; wNum++)
+                {
+                    var sWidth = wNum * gLength;
+                    var lines = wordArray[wNum];
+                    for (var dLineNum = lines.length - 1; dLineNum > 0; dLineNum--)
+                    {
+                        var line = lines[dLineNum];
+                        drawFigure.beginPath();                             //设置折线路径
+                        drawFigure.moveTo(sWidth + line[0][0]*interval,(16-line[0][0])*interval);
+                        for (var dPointNum = 1 ; dPointNum < wordArray[wNum][dLineNum].length; dPointNum++)
+                        {
+                            drawFigure.lineTo(sWidth + line[dPointNum][0]*interval,(16 - line[dPointNum][1])*interval);
+                        }
+                        drawFigure.closePath();
+                        drawFigure.stroke();                                //绘制线条
+                    }
+                }
+            }
+            //绘制16X16的网格
+            function createGrid(num)
+            {
+                //设置画布网格格式
+                myCanvas.width = gLength * (num + 1) + 4;
+                myCanvas.height = gLength + 4;
+                var origin = 2;
+                var widGrid = num * 16;
+
+                //绘制网格
+                var drawFigure = myCanvas.getContext("2d");
+                drawFigure.lineWidth = 1;                           //设置线属性
+                drawFigure.strokeStyle = "gray";
+                //绘制竖线
+                for ( var i = 0; i <= widGrid ; i++)
+                {
+                    drawFigure.moveTo(origin + interval*i, 0);
+                    drawFigure.lineTo(origin + interval*i, 16*interval);
+                    drawFigure.stroke();                                
+                }        
+                //绘制横线
+                for ( var i = 0 ; i <= 16 ; i++)
+                {
+                    drawFigure.moveTo(origin , interval*i);
+                    drawFigure.lineTo(origin + widGrid*interval, interval*i);
+                    drawFigure.stroke();                                
+                }
+            }  
+        </script>     
+    </body>    
+</html>   
