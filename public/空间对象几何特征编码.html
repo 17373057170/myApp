@@ -8,28 +8,24 @@
         <script type="text/Javascript">   
             var interval = 20;      //网格大小
             var gLength = interval*16;  //一块网格大小
-            var myCanvas = document.createElement("canvas");       //设置画布
+            var myCanvas = document.createElement("canvas");       //创建画布
             myCanvas.id = "can";
             document.body.appendChild(myCanvas);
 
             var wordNum = 0;        //记录字数
-            var wordArray = new Array();
+            var wordArray = new Array();    //存储字
  
             //将文件读取成字符串的形式
             function readNameFile()
             {  
-                var nameFile = document.getElementById("myNameFile").files[0];  
+                var nameFile = document.getElementById("myNameFile").files[0];  //获取文件
                 var reader=new FileReader();  
                 reader.readAsText(nameFile);  
                 reader.onload=function(e)  
                 {  
-                    var nameStr = this.result;      //读取文本  
-                    
-                    wordArray[wordNum] = nameStr2nameXY(nameStr);      //提取数字并存入数组
-                    wordNum++;  
-                    drawName(wordNum);
+                    wordArray[wordNum++] = nameStr2nameXY(this.result);      //提取文字并存入数组
                     //document.write(wordArray[0]);
-                    //draw(number);//画图  
+                    drawName(wordNum);
                 }     
             }
             //字符转为数字
@@ -38,10 +34,10 @@
                 var lineNum = 0;        //记录已经读取行数
                 var pointNum = 0;       //记录当前线点数
                 var nameXY = new Array();  
-                var strs = nameStr.split("\n");
+                var strs = nameStr.split("\n");     //设置分割
                 for (var i = 0; i < strs.length ;i++)
                 {
-                    if( i == 0)   
+                    if( i == 0)   //为第一条线增加存储空间
                     {
                         nameXY[lineNum] = new Array();
                         i++;
@@ -50,7 +46,7 @@
                     {
                         if(strs[i+1].indexOf("END") >= 0)    //文件结束
                             return nameXY;
-                        else    //线段结束
+                        else                                //当前线段结束
                         {
                             nameXY[++lineNum] = new Array();
                             i += 2;
@@ -60,33 +56,35 @@
 
                     //将该点记录进入数组
                     var XY = strs[i].split(',');
-                    nameXY[lineNum][pointNum] = new Array(2);
+                    nameXY[lineNum][pointNum] = new Array(2);       //分配存储空间
                     nameXY[lineNum][pointNum][0] = parseFloat(XY[0]);
-                    nameXY[lineNum][pointNum][1] = parseFloat(XY[1]);
-                    pointNum++;
+                    nameXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
                 }
             }
             //绘制
             function drawName(wordNum)
             {
-                createGrid(wordNum);
+                createGrid(wordNum);        //绘制网格
                 var drawFigure = myCanvas.getContext("2d");
-                drawFigure.lineWidth = 1;                           //设置线属性
-                drawFigure.strokeStyle = "blue";
-                for (var wNum = 0; wNum < wordNum; wNum++)
+                drawFigure.lineWidth = 10;                          //设置字宽
+                drawFigure.strokeStyle = "blue";                    //设置字色
+                for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
                 {
-                    var sWidth = wNum * gLength;
-                    var lines = wordArray[wNum];
-                    for (var dLineNum = lines.length - 1; dLineNum > 0; dLineNum--)
+                    var sWidth = wNum * gLength;            //设置字的绘制位置起点
+                    var lines = wordArray[wNum];            //获取当前字的线数组
+                    for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
                     {
-                        var line = lines[dLineNum];
-                        drawFigure.beginPath();                             //设置折线路径
-                        drawFigure.moveTo(sWidth + line[0][0]*interval,(16-line[0][0])*interval);
-                        for (var dPointNum = 1 ; dPointNum < wordArray[wNum][dLineNum].length; dPointNum++)
+                        var line = lines[dLineNum];         //获取当前线的点数组
+                        drawFigure.beginPath();             //设置折线路径
+                        drawFigure.moveTo(sWidth + line[0][0]*interval,(16-line[0][1])*interval);
+                        for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
                         {
+                            //drawFigure.beginPath();
+                            //drawFigure.arc(sWidth + line[dPointNum][0]*interval,(16 - line[dPointNum][1])*interval, 5, 0, Math.PI * 2, true);
+                            //drawFigure.fill();
                             drawFigure.lineTo(sWidth + line[dPointNum][0]*interval,(16 - line[dPointNum][1])*interval);
                         }
-                        drawFigure.closePath();
+                        //drawFigure.closePath();
                         drawFigure.stroke();                                //绘制线条
                     }
                 }
@@ -95,13 +93,13 @@
             function createGrid(num)
             {
                 //设置画布网格格式
-                myCanvas.width = gLength * (num + 1) + 4;
+                myCanvas.width = gLength * (num + 1) + 4;       //设置画布属性
                 myCanvas.height = gLength + 4;
                 var origin = 2;
                 var widGrid = num * 16;
+                var drawFigure = myCanvas.getContext("2d");
 
                 //绘制网格
-                var drawFigure = myCanvas.getContext("2d");
                 drawFigure.lineWidth = 1;                           //设置线属性
                 drawFigure.strokeStyle = "gray";
                 //绘制竖线
