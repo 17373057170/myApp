@@ -1,0 +1,230 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>空间投影</title>
+        <style type = "text/css">
+            body{ margin:0; font-family:"黑体"; font-size:20px; background:#E9E9E9;}
+            #container { margin:0 auto; margin-top:5px; width:1200px; padding:5px; background:#FFFFFF;}
+            #header { margin-bottom:10px; background:rgb(187, 181, 181);}
+            .containCanvas{ margin:0 auto;background: rgb(243, 215, 220);}
+        </style>
+    </head>
+    <body>        
+        <div id = "container">
+            <div id = "header">
+                <input id = "openMapFile" type = "file" onchange = "readMapFile()"/>  <br>
+                <input id = "LambertButtom" type = "button" value = "兰伯特投影" onclick = "setLambertSign()"/>
+                <input id = "MercatorButtom" type = "button" value = "墨卡托投影" onclick = "setMercatorSign()"/>
+            </div>
+            <div id = "canvasDiv" class = "containCanvas">
+                    <canvas id = "mapDrawing"/>
+            </div>
+        </div>
+    
+        <script type = "text/Javascript">
+            var projectSign = 0;        //投影类型代号
+            var myMap = new Array();    //首位记录总线段数
+
+            //当前投影设定为兰伯特投影，代号为1
+            function setLambertSign() { projectSign = 1; }
+            //当前投影为墨卡托投影，代号为2
+            function setMercatorSign() { projectSign = 2; }
+            //读取地图文件
+            function readMapFile()
+            {  
+                var mapFile = document.getElementById("openMapFile").files[0];  //获取文件
+                var reader=new FileReader();  
+                reader.readAsText(mapFile);  
+                reader.onload=function(e)
+                {
+                    myMap = mapStr2mapXY(this.result)
+                    //document.write(myMap);
+                    drawMap(myMap);
+                }     
+            }
+            //将字符串形式转换为数字形式
+            function mapStr2mapXY(mapStr)
+            {
+                var lineNum = 1;        //记录已经读取行数
+                var pointNum = 0;       //记录当前线点数
+                var mapXY = new Array();  
+                var strs = mapStr.split("\n");     //设置分割
+                for (var i = 0; i <= strs.length ;i++)
+                {
+                    if( i == 0)   //为第一条线增加存储空间
+                    {
+                        mapXY[lineNum] = new Array();
+                        i++;
+                    }
+                    if(strs[i].indexOf("END") >= 0)
+                    {
+                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
+                        {
+                            mapXY[0] = lineNum;
+                            return mapXY;
+                        }
+                        else                                //当前线段结束
+                        {
+                            mapXY[++lineNum] = new Array();
+                            i += 2;
+                            pointNum = 0;
+                        }
+                    }
+
+                    //将该点记录进入数组
+                    var XY = strs[i].split(',');
+                    mapXY[lineNum][pointNum] = new Array(2);       //分配存储空间
+                    mapXY[lineNum][pointNum][0] = parseFloat(XY[0]);
+                    mapXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
+                }//for
+            }
+            //找到地图的起始边界
+            function findBorder(mapArray)
+            {
+                var maxX = -180, maxY = -90, minX = 180, minY = 90; //设置经纬度最大最小标志
+                var lineNum = mapArray.length, pointNum;
+                var corX, corY;
+                for (var i = 1; i < lineNum; i++)
+                {
+                    lineArray = mapArray[i]
+                    pointNum = lineArray.length;
+                    for (var j = 0; j < pointNum; j++)
+                    {
+                        corX = lineArray[j][0], corY = lineArray[j][1];
+                        if (corX < minX)    minX = corX;
+                        if (corX > maxX)    maxX = corX;
+                        if (corY < minY)    minY = corY;
+                        if (corY > maxY)    maxY = corY;
+                    }//for point j
+                }//for line i
+                var borderArray = new Array(minX, maxX, minY, maxY);
+                return borderArray;
+            }
+            //进行兰伯特投影转换
+            function LambertTransition(mapArray)
+            {
+                //纬度是B
+                function LambertTXY(B1, B2, L0, cB, cL)
+                {
+                    var mB1 = Math.cos(B1), mB2 = Math.cos(B2));
+                    var tB1 = 
+                    var n = Math.LN2(mB1/mB2)/
+                    var theTa = 
+                }
+            }
+            //进行墨卡托投影转换
+            function MercatorTransition(mapDraw)
+            {
+                function MercatorTXY(B0, L0, B, L, a, b, e)
+                {
+                    var K = ((a*a/b)/Math.sqrt(1 + e*e*Math.cos(B0)*Math.cos(B0)))*cos(B0);
+                    var XL = K*(L - L0);
+                    var YB = K * Math.LN2(Math.tan(Math.PI/4 + B/2) * Math.pow((1 - e*Math.sin(B))/(1 + e*Math.sin(B)), e/2));
+                    var XY = new Array(XL, YB);
+                }
+                for (var i = 1; i <= mapDraw[0][0]; i++)
+                {
+                    var eachLine = mapDraw[i];
+                    for (var j = 0; j < eachLine.length; j++)
+                        eachLine[j] =MercatorTXY(0, 0, eachLine[j][1], eachLine[j][0], 6378245, 6356863.01877, 1/298.3)
+                }
+                return mapDraw;
+            }
+            //加入网格并进行投影转换
+            function completeMap(mapArray)
+            {
+                var mapDraw = new Array();      //存储需要绘制的图形数据，全部以点的形式存储
+
+                //存储网格数据
+                var borderList = findBorder(mapArray);
+                var leftBorder, rightBorder, bottomBorder, topBorder;
+                if (borderList[0] < 0)  leftBorder = parseInt(borderList[0]/5) - 1;
+                else    leftBorder = parseInt(borderList[0]/5);
+                if (borderList[1] < 0)  rightBorder = parseInt(borderList[1]/5);
+                else    rightBorder = parseInt(borderList[1]/5) + 1;
+                if (borderList[2] < 0)  bottomBorder = parseInt(borderList[2]/5) - 1;
+                else    bottomBorder = parseInt(borderList[2]/5);
+                if (borderList[3] < 0)  topBorder = parseInt(borderList[3]/5);
+                else    topBorder = parseInt(borderList[3]/5) + 1;
+                var longLineNum = rightBorder - leftBorder -1, latLineNum = topBorder - bottomBorder - 1;
+                var longLineLen = (latLineNum + 1) * 5, latLineLen = (longLineNum + 1) * 5;
+                //存储竖线数据
+                for (var i = 1; i <= longLineNum; i++)
+                {
+                    mapDraw[i] = new Array(2);
+                    mapDraw[i][0] = new Array((leftBorder + i)*5, bottomBorder*5);
+                    mapDraw[i][1] = new Array((leftBorder + i)*5, bottomBorder*5 + longLineLen);
+                }
+                //存储横线数据
+                for (var i = 1; i <= latLineNum; i++)
+                {
+                    mapDraw[i + longLineNum] = new Array(2);
+                    mapDraw[i + longLineNum][0] = new Array(leftBorder*5, (bottomBorder + i)*5);
+                    mapDraw[i + longLineNum][1] = new Array(leftBorder*5 + latLineLen, (bottomBorder + i)*5);                    
+                }
+
+                //存储地图数据
+                var mapLineNum = mapArray[0];
+                for (var i = 1; i <= mapLineNum; i++)
+                {
+                    mapDraw[i +longLineNum + latLineNum] = new Array();
+                    mapDraw[i + longLineNum + latLineNum] = mapArray[i].slice();
+                }
+                //记录用于所有线总数，画网格的线条数，地图线段数
+                mapDraw[0] = new Array(mapDraw.length - 1, longLineNum + latLineNum, mapArray[0]) ; 
+                //document.write(mapDraw);
+                
+                return mapDraw;
+            }
+            function drawMap(mapArray)
+            {
+                var rawDrawPoints = completeMap(mapArray, projectSign);
+                //获得画布的长宽定标
+                var mapDrawBorder = findBorder(rawDrawPoints);
+                var W2HRatio = (mapDrawBorder[1] - mapDrawBorder[0]) / (mapDrawBorder[3] - mapDrawBorder[2]);
+                var interval, minX = mapDrawBorder[0], minY = mapDrawBorder[2] ,maxY = mapDrawBorder[3];
+                if (W2HRatio >= 1.5)
+                    interval = parseInt(900/(mapDrawBorder[1] - mapDrawBorder[0]));
+                else
+                    interval = parseInt(600/(mapDrawBorder[3] - mapDrawBorder[2]));
+                var mapWidth = interval * (mapDrawBorder[1] - mapDrawBorder[0]);
+                var mapHeight = interval * (mapDrawBorder[3] - mapDrawBorder[2]);
+
+                //设置画布长宽
+                var mapDrawDiv = document.getElementById("canvasDiv");
+                mapDrawDiv.style.height = mapHeight + "px";
+                mapDrawDiv.style.width = mapWidth + "px";
+                var myCanvas = document.getElementById("mapDrawing");
+                myCanvas.width = mapWidth;
+                myCanvas.height = mapHeight;
+
+                //绘制
+                var drawCanvas = myCanvas.getContext("2d");
+                //绘制格网
+                drawCanvas.lineWidth = 1;                           //设置线宽
+                drawCanvas.strokeStyle = "gray";                    //设置线色
+                for (var i = 1; i <= rawDrawPoints[0][1]; i++)
+                {
+                    var lineList = rawDrawPoints[i];
+                    drawCanvas.beginPath();
+                    drawCanvas.moveTo((lineList[0][0] - minX) * interval, (maxY - lineList[0][1]) * interval);
+                    for (var j = 1; j < lineList.length; j++)
+                        drawCanvas.lineTo((lineList[j][0]- minX) * interval, (maxY - lineList[j][1]) * interval);
+                    drawCanvas.stroke();                                //绘制线条
+                }
+                //绘制地图
+                drawCanvas.lineWidth = 2;                           //设置线宽
+                drawCanvas.strokeStyle = "purple";                    //设置线色
+                for (var i = rawDrawPoints[0][1] + 1; i <= rawDrawPoints[0][0]; i++)
+                {
+                    var lineList = rawDrawPoints[i];
+                    drawCanvas.beginPath();
+                    drawCanvas.moveTo((lineList[0][0] - minX) * interval, (maxY - lineList[0][1]) * interval);
+                    for (var j = 1; j < lineList.length; j++)
+                        drawCanvas.lineTo((lineList[j][0]- minX) * interval, (maxY - lineList[j][1]) * interval);
+                    drawCanvas.stroke();                                //绘制线条
+                }
+            }
+        </script>
+    </body>
+</html>
