@@ -25,21 +25,30 @@
             var projectSign = 0;        //投影类型代号
             var myMap = new Array();    //首位记录总线段数
 
-            //当前投影设定为兰伯特投影，代号为1
-            function setLambertSign() { projectSign = 1; }
-            //当前投影为墨卡托投影，代号为2
-            function setMercatorSign() { projectSign = 2; }
+            //当前投影设定为兰伯特投影并在屏幕上重新绘制，代号为1
+            function setLambertSign() 
+            { 
+                projectSign = 1; 
+                drawMap(myMap);
+            }
+            //当前投影为墨卡托投影并在屏幕上重新绘制，代号为2
+            function setMercatorSign() 
+            { 
+                projectSign = 2; 
+                drawMap(myMap);
+            }
             //读取地图文件
             function readMapFile()
             {  
+                projectSign = 0;        //将投影标识设置为0
                 var mapFile = document.getElementById("openMapFile").files[0];  //获取文件
-                var reader=new FileReader();  
+                var reader = new FileReader();  
                 reader.readAsText(mapFile);  
                 reader.onload=function(e)
                 {
-                    myMap = mapStr2mapXY(this.result)
+                    myMap = mapStr2mapXY(this.result)   //将读取的字符串转为数字
                     //document.write(myMap);
-                    drawMap(myMap);
+                    drawMap(myMap);     //绘制原始地图
                 }     
             }
             //将字符串形式转换为数字形式
@@ -65,7 +74,7 @@
                         }
                         else                                //当前线段结束
                         {
-                            mapXY[++lineNum] = new Array();
+                            mapXY[++lineNum] = new Array(); //为下一条线分配空间
                             i += 2;
                             pointNum = 0;
                         }
@@ -81,7 +90,7 @@
             //找到地图的起始边界
             function findBorder(mapArray)
             {
-                var maxX = -180, maxY = -90, minX = 180, minY = 90; //设置经纬度最大最小标志
+                var maxX = -20100000, maxY = -20100000, minX = 20100000, minY = 20100000; //设置经纬度最大最小标志
                 var lineNum = mapArray.length, pointNum;
                 var corX, corY;
                 for (var i = 1; i < lineNum; i++)
@@ -100,33 +109,94 @@
                 var borderArray = new Array(minX, maxX, minY, maxY);
                 return borderArray;
             }
-            //进行兰伯特投影转换
-            function LambertTransition(mapArray)
+            function An2Ra(angle)
             {
-                //纬度是B
-                function LambertTXY(B1, B2, L0, cB, cL)
-                {
-                    var mB1 = Math.cos(B1), mB2 = Math.cos(B2));
-                    var tB1 = 
-                    var n = Math.LN2(mB1/mB2)/
-                    var theTa = 
-                }
+	            return (angle / 180) * Math.PI;
             }
-            //进行墨卡托投影转换
-            function MercatorTransition(mapDraw)
+
+            //进行兰伯特投影转换
+            function LambertTransition(mapDraw)
             {
-                function MercatorTXY(B0, L0, B, L, a, b, e)
+                //投影转化算法
+                function LambertTXY(B, L, B0, B1, B2, L0, a, b, e2)
                 {
-                    var K = ((a*a/b)/Math.sqrt(1 + e*e*Math.cos(B0)*Math.cos(B0)))*cos(B0);
-                    var XL = K*(L - L0);
-                    var YB = K * Math.LN2(Math.tan(Math.PI/4 + B/2) * Math.pow((1 - e*Math.sin(B))/(1 + e*Math.sin(B)), e/2));
-                    var XY = new Array(XL, YB);
+	                //将原始参数转变为弧度制
+	                B0 = An2Ra(B0);
+	                B1 = An2Ra(B1);
+	                B2 = An2Ra(B2);
+	                L0 = An2Ra(L0);
+	                //将原始数据转化为弧度制
+	                B = An2Ra(B);
+	                L = An2Ra(L);
+                    
+    	            //获得B1B2的m值
+	                var mB1 = Math.cos(B1) / Math.sqrt(1 - e2*Math.sin(B1)*Math.sin(B1));
+	                var mB2 = Math.cos(B2) / Math.sqrt(1 - e2*Math.sin(B2)*Math.sin(B2));
+	                //获得B0B1B2的t值
+	                var tB0 = Math.tan(Math.PI/4 - B0/2) / Math.sqrt((1 - Math.sqrt(e2)*Math.sin(B0)) / ((1 + Math.sqrt(e2)*Math.sin(B0)), Math.sqrt(e2)/2));
+    	            var tB1 = Math.tan(Math.PI/4 - B1/2) / Math.sqrt((1 - Math.sqrt(e2)*Math.sin(B1)) / ((1 + Math.sqrt(e2)*Math.sin(B1)), Math.sqrt(e2)/2));
+	                var tB2 = Math.tan(Math.PI/4 - B2/2) / Math.sqrt((1 - Math.sqrt(e2)*Math.sin(B2)) / ((1 + Math.sqrt(e2)*Math.sin(B2)), Math.sqrt(e2)/2));
+	                //获得n值
+	                var n = Math.log(mB1/mB2) / Math.log(tB1/tB2);
+	                //获得F值
+    	            var F = mB1 / (n * Math.pow(tB1, n));		
+	                //获得r0
+	                var r0 = a * F * Math.pow(tB0, n);
+                	//获得theTa值
+	                var theTa = n * (L - L0);
+                    
+	                //获得B的t值
+	                var tB = Math.tan(Math.PI/4 - B/2) / Math.sqrt((1 - Math.sqrt(e2)*Math.sin(B)) / ((1 + Math.sqrt(e2)*Math.sin(B)), Math.sqrt(e2)/2));
+            	    //获得r值
+	                var r = a * F * Math.pow(tB, n); 
+                    
+	                //计算坐标
+	                var XL = r * Math.sin(theTa);	//经度
+	                var YB = r0 - r * Math.cos(theTa);	//纬度
+            	    var XY = new Array(XL, YB);
+	                return XY;
                 }
                 for (var i = 1; i <= mapDraw[0][0]; i++)
                 {
                     var eachLine = mapDraw[i];
                     for (var j = 0; j < eachLine.length; j++)
-                        eachLine[j] =MercatorTXY(0, 0, eachLine[j][1], eachLine[j][0], 6378245, 6356863.01877, 1/298.3)
+                        eachLine[j] = LambertTXY(eachLine[j][1], eachLine[j][0], 0, 20, 40, 105, 6378245, 6356863.01877, 0.006693421622966)
+                }
+                return mapDraw;
+            }
+            //进行墨卡托投影转换
+            function MercatorTransition(mapDraw)
+            {
+                //投影转化算法
+                function MercatorTXY(B, L, B0, L0, a, b, e2, e_2)
+                {
+                    //绘制85到-85的范围
+                    if (B == 90)	B = 86;
+	                if (B == -90)	B = -86;
+
+	                //将原始参数转变为弧度制
+	                B0 = An2Ra(B0);
+	                L0 = An2Ra(L0);
+	                //将原始数据转化为弧度制
+	                B = An2Ra(B);
+	                L = An2Ra(L);
+	
+	                //求B0的N值
+	                var NB0 = ((a*a) / b) / Math.sqrt(1 + e_2 * Math.cos(B0)*Math.cos(B0));
+	                //求K值
+	                var K = NB0 * Math.cos(B0);
+                	//计算坐标
+	                var XL = K * (L - L0);
+	                var YB = K * Math.log(Math.tan(Math.PI/4 + B/2)*Math.pow(((1 - Math.sqrt(e2)*Math.sin(B))/(1 - Math.sqrt(e2)*Math.sin(B))), Math.sqrt(e2)/2))
+
+                	var XY = new Array(XL, YB);
+                	return XY;
+                }
+                for (var i = 1; i <= mapDraw[0][0]; i++)
+                {
+                    var eachLine = mapDraw[i];
+                    for (var j = 0; j < eachLine.length; j++)
+                        eachLine[j] =MercatorTXY(eachLine[j][1], eachLine[j][0], 0, 0, 6378245, 6356863.01877, 0.006693421622966, 0.006738525414684);
                 }
                 return mapDraw;
             }
@@ -173,7 +243,19 @@
                 //记录用于所有线总数，画网格的线条数，地图线段数
                 mapDraw[0] = new Array(mapDraw.length - 1, longLineNum + latLineNum, mapArray[0]) ; 
                 //document.write(mapDraw);
-                
+
+                switch(projectSign)
+                {
+                case 0://原始经纬度数据显示
+                    break;
+                case 1://兰伯特投影
+                    mapDraw = LambertTransition(mapDraw);
+                    break;
+                case 2://墨卡托投影
+                    mapDraw = MercatorTransition(mapDraw);
+                    break;
+                }
+
                 return mapDraw;
             }
             function drawMap(mapArray)
@@ -184,9 +266,9 @@
                 var W2HRatio = (mapDrawBorder[1] - mapDrawBorder[0]) / (mapDrawBorder[3] - mapDrawBorder[2]);
                 var interval, minX = mapDrawBorder[0], minY = mapDrawBorder[2] ,maxY = mapDrawBorder[3];
                 if (W2HRatio >= 1.5)
-                    interval = parseInt(900/(mapDrawBorder[1] - mapDrawBorder[0]));
+                    interval = 900/(mapDrawBorder[1] - mapDrawBorder[0]);
                 else
-                    interval = parseInt(600/(mapDrawBorder[3] - mapDrawBorder[2]));
+                    interval = 600/(mapDrawBorder[3] - mapDrawBorder[2]);
                 var mapWidth = interval * (mapDrawBorder[1] - mapDrawBorder[0]);
                 var mapHeight = interval * (mapDrawBorder[3] - mapDrawBorder[2]);
 
