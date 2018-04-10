@@ -293,9 +293,11 @@
                 //存储横线数据
                 for (var i = 1; i <= latLineNum; i++)
                 {
-                    mapDraw[i + longLineNum] = new Array(2);
-                    mapDraw[i + longLineNum][0] = new Array(leftBorder*5, (bottomBorder + i)*5);
-                    mapDraw[i + longLineNum][1] = new Array(leftBorder*5 + latLineLen, (bottomBorder + i)*5);                    
+                    mapDraw[i + longLineNum] = new Array(longLineNum);
+                    for (var j = 0; j < longLineNum + 2; j++)
+                    {                        
+                        mapDraw[i + longLineNum][j] = new Array(leftBorder*5 + 5*j, (bottomBorder + i)*5);
+                    }
                 }
 
                 //存储地图数据
