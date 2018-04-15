@@ -29,14 +29,22 @@
         </div>
     
         <script type = "text/Javascript">
+            /*********************
+            *全局变量
+            *投影类型、地理坐标系
+            */
             var projectSign = 0;        //投影类型代号
             var myMap = new Array();    //首位记录总线段数
             var gCSign = 54;            //标记地理坐标系
-            var bigRouteSign = 0;           //大圆航线标记
+            var bigRouteSign = 0;       //大圆航线标记
             //地理坐标参数
             var gCoordinates54 = { a:6378245, b: 6356863.01877, e2:0.006693421622966, e_2:0.006738525414684};
             var gCoordinates84 = { a:6378137, b:6356752.3142};
 
+            /**********************************
+            *判断选择的地理坐标系、投影坐标系数据
+            *判断是否绘制大圆航线
+            ***********************************/
             //判断选择的地理坐标系
             function setGC54()  { gCSign = 54; }
             function setGC84()  { gCSign = 84; }
@@ -52,89 +60,19 @@
                 projectSign = 2; 
                 drawMap(myMap);
             }
-            //大圆航线
             function setRouteOn()
             {
                 bigRouteSign = 1;
                 drawMap(myMap);
             }
-            //读取地图文件
-            function readMapFile()
-            {  
-                projectSign = 0;        //将投影标识设置为0
-                var mapFile = document.getElementById("openMapFile").files[0];  //获取文件
-                var reader = new FileReader();  
-                reader.readAsText(mapFile);  
-                reader.onload=function(e)
-                {
-                    myMap = mapStr2mapXY(this.result)   //将读取的字符串转为数字
-                    //document.write(myMap);
-                    drawMap(myMap);     //绘制原始地图
-                }     
-            }
-            //将字符串形式转换为数字形式
-            function mapStr2mapXY(mapStr)
-            {
-                var lineNum = 1;        //记录已经读取行数
-                var pointNum = 0;       //记录当前线点数
-                var mapXY = new Array();  
-                var strs = mapStr.split("\n");     //设置分割
-                for (var i = 0; i <= strs.length ;i++)
-                {
-                    if( i == 0)   //为第一条线增加存储空间
-                    {
-                        mapXY[lineNum] = new Array();
-                        i++;
-                    }
-                    if(strs[i].indexOf("END") >= 0)
-                    {
-                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
-                        {
-                            mapXY[0] = lineNum;
-                            return mapXY;
-                        }
-                        else                                //当前线段结束
-                        {
-                            mapXY[++lineNum] = new Array(); //为下一条线分配空间
-                            i += 2;
-                            pointNum = 0;
-                        }
-                    }
 
-                    //将该点记录进入数组
-                    var XY = strs[i].split(',');
-                    mapXY[lineNum][pointNum] = new Array(2);       //分配存储空间
-                    mapXY[lineNum][pointNum][0] = parseFloat(XY[0]);
-                    mapXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
-                }//for
-            }
-            //找到地图的起始边界
-            function findBorder(mapArray)
-            {
-                var maxX = -20100000, maxY = -20100000, minX = 20100000, minY = 20100000; //设置经纬度最大最小标志
-                var lineNum = mapArray.length, pointNum;
-                var corX, corY;
-                for (var i = 1; i < lineNum; i++)
-                {
-                    lineArray = mapArray[i]
-                    pointNum = lineArray.length;
-                    for (var j = 0; j < pointNum; j++)
-                    {
-                        corX = lineArray[j][0], corY = lineArray[j][1];
-                        if (corX < minX)    minX = corX;
-                        if (corX > maxX)    maxX = corX;
-                        if (corY < minY)    minY = corY;
-                        if (corY > maxY)    maxY = corY;
-                    }//for point j
-                }//for line i
-                var borderArray = new Array(minX, maxX, minY, maxY);
-                return borderArray;
-            }
-
+            /****************************************
+            *投影转换，包括5个函数
+            *弧度制转换、地理坐标系赋值、投影转换算法
+            ****************************************/
             //角度弧度相互转换
             function An2Ra(angle) { return (angle / 180) * Math.PI; }
             function Ra2An(angle) { return (angle / Math.PI) * 180; }
-
             //对地理坐标系参数进行赋值
             function getGC()
             {
@@ -198,13 +136,17 @@
             	    var XY = new Array(XL, YB);
 	                return XY;
                 }
+
+                //获得地理坐标系
                 var GC = getGC();
+                //对地图中每一条线进行投影转换
                 for (var i = 1; i <= mapDraw[0][0]; i++)
                 {
                     var eachLine = mapDraw[i];
                     for (var j = 0; j < eachLine.length; j++)
                         eachLine[j] = LambertTXY(eachLine[j][1], eachLine[j][0], 0, 20, 40, 105, GC.a, GC.b, GC.e2)
                 }
+
                 return mapDraw;
             }
             //进行墨卡托投影转换
@@ -235,16 +177,24 @@
                 	var XY = new Array(XL, YB);
                 	return XY;
                 }
+
+                //获得地理坐标系
                 var GC = getGC();
+                //对地图中每一条线进行投影转换
                 for (var i = 1; i <= mapDraw[0][0]; i++)
                 {
                     var eachLine = mapDraw[i];
                     for (var j = 0; j < eachLine.length; j++)
                         eachLine[j] =MercatorTXY(eachLine[j][1], eachLine[j][0], 0, 0, GC.a, GC.b, GC.e2, GC.e_2);
                 }
+
                 return mapDraw;
             }
 
+            /*********************************
+            *绘制大圆航线
+            *递归计算大圆航线进过的点并排序记录
+            **********************************/
             //设置排序方式
             function sortLong(a, b)
             {
@@ -260,15 +210,100 @@
 	            var By = Math.cos(lat2) * Math.sin(Zlong);
 	            var latm = Math.atan2((Math.sin(lat1) + Math.sin(lat2)), Math.sqrt((Math.cos(lat1) + Bx)*(Math.cos(lat1) + Bx) + By*By));
                 var longm = long1 + Math.atan2(By, Math.cos(lat1) + Bx);
+
                 //加入数组
                 bigCircleList[bigCircleList.length] = new Array(Ra2An(longm), Ra2An(latm));
-                //递归判断条件
-	            if (times == 6)   return bigCircleList;
+                //递归判断条件，只进行有限次数分割
+	            if (times == 6)   
+                    return bigCircleList;
 
                 //利用递归分辨求算向上向下中点
 	            bigCircleList = bigyuan(bigCircleList, lat1, long1, latm, longm, times + 1);
 	            bigCircleList = bigyuan(bigCircleList, latm, longm, lat2, long2, times + 1);
+
                 return bigCircleList;
+            }
+
+            /*****************************
+            *读取地图文件并根据所选投影绘制
+            *****************************/
+            //将字符串形式转换为数字形式
+            function mapStr2mapXY(mapStr)
+            {
+                var lineNum = 1;        //记录已经读取行数
+                var pointNum = 0;       //记录当前线点数
+                var mapXY = new Array();  
+                var strs = mapStr.split("\n");     //设置分割
+                for (var i = 0; i <= strs.length ;i++)
+                {
+                    if( i == 0)   //为第一条线增加存储空间
+                    {
+                        mapXY[lineNum] = new Array();
+                        i++;
+                    }
+                    if(strs[i].indexOf("END") >= 0)
+                    {
+                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
+                        {
+                            mapXY[0] = lineNum;
+                            return mapXY;
+                        }
+                        else                                //当前线段结束
+                        {
+                            mapXY[++lineNum] = new Array(); //为下一条线分配空间
+                            i += 2;
+                            pointNum = 0;
+                        }
+                    }
+
+                    //将该点记录进入数组
+                    var XY = strs[i].split(',');
+                    mapXY[lineNum][pointNum] = new Array(2);       //分配存储空间
+                    mapXY[lineNum][pointNum][0] = parseFloat(XY[0]);
+                    mapXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
+                }//for
+            }
+            //读取文件并绘制
+            function readMapFile()
+            {  
+                projectSign = 0;        //将投影标识设置为0
+                var mapFile = document.getElementById("openMapFile").files[0];  //获取文件
+                var reader = new FileReader();  
+                reader.readAsText(mapFile);  
+                reader.onload=function(e)
+                {
+                    myMap = mapStr2mapXY(this.result)   //将读取的字符串转为数字
+                    drawMap(myMap);     //绘制原始地图
+                }     
+            }
+
+            /************************************************************
+            *绘制地图，包括3个函数
+            *查找当前地图边界、对地图进行投影转换或增加大圆航线的路径、绘制
+            ************************************************************/
+            //找到当前地图数组的边界（包括网格）
+            function findBorder(mapArray)
+            {
+                //设置上下左右最大最小标志
+                var maxX = -20100000, maxY = -20100000, minX = 20100000, minY = 20100000; 
+                var lineNum = mapArray.length, pointNum;
+                var corX, corY;
+                //遍历数组，找到最上最下最左最右
+                for (var i = 1; i < lineNum; i++)
+                {
+                    lineArray = mapArray[i]
+                    pointNum = lineArray.length;
+                    for (var j = 0; j < pointNum; j++)
+                    {
+                        corX = lineArray[j][0], corY = lineArray[j][1];
+                        if (corX < minX)    minX = corX;
+                        if (corX > maxX)    maxX = corX;
+                        if (corY < minY)    minY = corY;
+                        if (corY > maxY)    maxY = corY;
+                    }//for point j
+                }//for line i
+
+                return Array(minX, maxX, minY, maxY);
             }
             //加入网格并进行投影转换，增加大圆航线
             function completeMap(mapArray)
@@ -324,7 +359,6 @@
                 
                 //记录用于所有线总数，画网格的线条数，地图线段数
                 mapDraw[0] = new Array(mapDraw.length - 1, longLineNum + latLineNum, mapArray[0], bigRouteSign) ; 
-                //document.write(mapDraw);
 
                 switch(projectSign)
                 {
@@ -340,8 +374,10 @@
 
                 return mapDraw;
             }
+            //绘制
             function drawMap(mapArray)
             {
+                //获取绘制的数据
                 var rawDrawPoints = completeMap(mapArray, projectSign);
                 //获得画布的长宽定标
                 var mapDrawBorder = findBorder(rawDrawPoints);
@@ -364,23 +400,16 @@
 
                 //绘制
                 var drawCanvas = myCanvas.getContext("2d");
-                //绘制格网
-                drawCanvas.lineWidth = 0.5;                           //设置线宽
+                //绘制格网和地图
+                drawCanvas.lineWidth = 0.5;                          //设置线宽
                 drawCanvas.strokeStyle = "gray";                    //设置线色
-                for (var i = 1; i <= rawDrawPoints[0][1]; i++)
+                for (var i = 1; i <= rawDrawPoints[0][0]; i++)
                 {
-                    var lineList = rawDrawPoints[i];
-                    drawCanvas.beginPath();
-                    drawCanvas.moveTo((lineList[0][0] - minX) * interval, (maxY - lineList[0][1]) * interval);
-                    for (var j = 1; j < lineList.length; j++)
-                        drawCanvas.lineTo((lineList[j][0]- minX) * interval, (maxY - lineList[j][1]) * interval);
-                    drawCanvas.stroke();                                //绘制线条
-                }
-                //绘制地图
-                drawCanvas.lineWidth = 1.3;                           //设置线宽
-                drawCanvas.strokeStyle = "purple";                    //设置线色
-                for (var i = rawDrawPoints[0][1] + 1; i <= rawDrawPoints[0][0] - rawDrawPoints[0][3]; i++)
-                {
+                    if (i == rawDrawPoints[0][1] + 1)
+                    {//网格绘制完毕，开始绘制地图
+                        drawCanvas.lineWidth = 1.3;                           //设置线宽
+                        drawCanvas.strokeStyle = "purple";                    //设置线色
+                    }
                     var lineList = rawDrawPoints[i];
                     drawCanvas.beginPath();
                     drawCanvas.moveTo((lineList[0][0] - minX) * interval, (maxY - lineList[0][1]) * interval);
@@ -389,7 +418,9 @@
                     drawCanvas.stroke();                                //绘制线条
                 }
 
-                if (rawDrawPoints[0][3] == 0)   return;
+                if (rawDrawPoints[0][3] == 0)   
+                    return;
+
                 //绘制大圆航线
                 drawCanvas.lineWidth = 3;                           //设置线宽
                 drawCanvas.strokeStyle = "blue";                    //设置线色
@@ -397,7 +428,7 @@
                 drawCanvas.beginPath();
                 drawCanvas.moveTo((lineList[0][0] - minX) * interval, (maxY - lineList[0][1]) * interval);
                 for (var j = 1; j < lineList.length; j++)
-                        drawCanvas.lineTo((lineList[j][0]- minX) * interval, (maxY - lineList[j][1]) * interval);
+                    drawCanvas.lineTo((lineList[j][0]- minX) * interval, (maxY - lineList[j][1]) * interval);
                 drawCanvas.stroke();                                //绘制线条
 
                 return;

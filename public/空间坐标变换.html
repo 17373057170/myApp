@@ -1,204 +1,99 @@
 <html>    
     <head>    
         <title>空间对象几何特征编码</title>    
+        <meta name = "author" content = "10160311 邓珣">
     </head>    
     <body>               
         选择文件 <input id="myNameFile" type="file" onchange="readNameFile()"/>  <br>  
               
         <script type="text/Javascript">   
-            var interval = 20;      //网格宽度
-            var myCanvas = document.createElement("canvas");       //创建画布
-            myCanvas.id = "can";
-            document.body.appendChild(myCanvas);
-            var origin = 50;        //起始绘画位置
+            /**************************
+            *全局变量：
+            *格网数据，定义存储字的数组
+            *变换参数，画布
+            ***************************/
+            var interval = 20;              //网格宽度
+            var origin = 50;                //起始绘画位置
             var wordArray = new Array();    //存储字
             var wordNum = 0;                //记录字数
             var changeNum = 0;              //当前变换次数
-            var changeList = new Array(7);  //记录变换的参数
-            changeList[0] = new Array(1, 1, 0, 0, 0);       //左斜
-            changeList[1] = new Array(2, 0, -0.15, 0, 0)    //耸肩
-            changeList[2] = new Array(3, 1.2, 1.2, 0, 0);         //放大
-            changeList[3] = new Array(3, 0.5, 0.5, 0, 0);         //缩小
+            //变换参数数组
+            var changeList = new Array(7);  
+            changeList[0] = new Array(1, 1, 0, 0, 0);           //左斜
+            changeList[1] = new Array(2, 0, -0.15, 0, 0)        //耸肩
+            changeList[2] = new Array(3, 1.2, 1.2, 0, 0);       //放大
+            changeList[3] = new Array(3, 0.5, 0.5, 0, 0);       //缩小
             changeList[4] = new Array(4, Math.cos(Math.PI/9), Math.sin(Math.PI/9), 0, 0);    //旋转
-            changeList[5] = new Array(5, 0, 1, 1, 0);        //以x=y为对称轴对称变换
-            changeList[6] = new Array(6, 200, 20, 0, 0);           //平移 
-            //将文件读取成字符串的形式
-            function readNameFile()
-            {  
-                var nameFile = document.getElementById("myNameFile").files[0];  //获取文件
-                var reader=new FileReader();  
-                reader.readAsText(nameFile);  
-                reader.onload = function(e)  
-                {  
-                    wordArray[wordNum++] = nameStr2nameXY(this.result);      //提取文字并存入数组
-                    drawName(0);
-                    setTimeout('loadInTime()',5000); 
-                }     
-            }
-            //字符转为数字
-            function nameStr2nameXY(nameStr)
-            {
-                var lineNum = 0;        //记录已经读取行数
-                var pointNum = 0;       //记录当前线点数
-                var nameXY = new Array();  
-                var strs = nameStr.split("\n");     //设置分割
-                for (var i = 0; i < strs.length ;i++)
-                {
-                    if( i == 0)   //为第一条线增加存储空间
-                    {
-                        nameXY[lineNum] = new Array();
-                        i++;
-                    }
-                    if(strs[i].indexOf("END") >= 0)
-                    {
-                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
-                            return nameXY;
-                        else                                //当前线段结束
-                        {
-                            nameXY[++lineNum] = new Array();
-                            i += 2;
-                            pointNum = 0;
-                        }
-                    }
+            changeList[5] = new Array(5, 0, 1, 1, 0);           //以x=y为对称轴对称变换
+            changeList[6] = new Array(6, 200, 20, 0, 0);        //平移 
 
-                    //将该点记录进入数组
-                    var XY = strs[i].split(',');
-                    nameXY[lineNum][pointNum] = new Array(2);       //分配存储空间
-                    nameXY[lineNum][pointNum][0] = parseFloat(XY[0]);
-                    nameXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
-                }
-            }
-            function loadInTime()
+            //创建画布
+            var myCanvas = document.createElement("canvas");       
+            myCanvas.id = "can";
+            document.body.appendChild(myCanvas);
+
+            /******************
+            *变形算法空间变换函数
+            *******************/
+            //左斜变换或耸肩变换，代号为1或2
+            //变换X
+            function obliqueX(pointX, pointY, obliqueNumX)
             {
-                signChange = changeList[changeNum++];
-                drawName(signChange[0], signChange[1], signChange[2], signChange[3], signChange[4]);
-                if (changeNum == 7) return;
-                setTimeout('loadInTime()',5000);
+                return pointX + pointY*obliqueNumX;
             }
-            //绘制
-            function drawName(drawstlye, signX, signY, signX1 = 0, signY1 = 0)
+            //变换Y
+            function obliqueY(pointX, pointY, obliqueNumY)
             {
-                createGrid(drawstlye, signX, signY, signX1, signY1);        //绘制网格
-                var drawFigure = myCanvas.getContext("2d");
-                drawFigure.lineWidth = 10;                          //设置字宽
-                drawFigure.strokeStyle = "blue";                    //设置字色
-                switch(drawstlye)
-                {
-                case 0://原始绘制
-                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
-                    {
-                        var sWidth = 200;//wNum * gLength;            //设置字的绘制位置起点
-                        var lines = wordArray[wNum];            //获取当前字的线数组
-                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
-                        {
-                            var line = lines[dLineNum];         //获取当前线的点数组
-                            drawFigure.beginPath();             //设置折线路径
-                            drawFigure.moveTo(origin + line[0][0]*interval, origin + (16-line[0][1])*interval);
-                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
-                                drawFigure.lineTo(origin + line[dPointNum][0]*interval, origin + (16 - line[dPointNum][1])*interval);
-                            drawFigure.stroke();                                //绘制线条
-                        }
-                    }break;
-                case 1:case 2://左斜和耸肩
-                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
-                    {
-                        var lines = wordArray[wNum];            //获取当前字的线数组
-                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
-                        {
-                            var line = lines[dLineNum];         //获取当前线的点数组
-                            drawFigure.beginPath();             //设置折线路径
-                            var myPoint = new Array(2);
-                            myPoint[0] = obliqueX(origin + line[0][0]*interval, origin + (16-line[0][1])*interval,signX);
-                            myPoint[1] = obliqueY(origin + line[0][0]*interval, origin + (16-line[0][1])*interval,signY);
-                            drawFigure.moveTo(myPoint[0], myPoint[1]);
-                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
-                            {
-                                myPoint[0] = obliqueX(origin + line[dPointNum][0]*interval, origin + (16-line[dPointNum][1])*interval,signX);
-                                myPoint[1] = obliqueY(origin + line[dPointNum][0]*interval, origin + (16-line[dPointNum][1])*interval,signY);
-                                drawFigure.lineTo(myPoint[0], myPoint[1]);
-                            }
-                            drawFigure.stroke();                                //绘制线条
-                        }
-                    }
-                    break;
-                case 3://放大缩小
-                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
-                    {
-                        var lines = wordArray[wNum];            //获取当前字的线数组
-                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
-                        {
-                            var line = lines[dLineNum];         //获取当前线的点数组
-                            drawFigure.beginPath();             //设置折线路径
-                            drawFigure.moveTo(scaleX(origin + line[0][0]*interval,signX), scaleY(origin + (16-line[0][1])*interval,signY));
-                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
-                                drawFigure.lineTo(scaleX(origin + line[dPointNum][0]*interval,signX), scaleY(origin + (16 - line[dPointNum][1])*interval,signY));
-                            drawFigure.stroke();                //绘制线条
-                        }
-                    }
-                    break;
-                case 4://旋转
-                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
-                    {
-                        var lines = wordArray[wNum];            //获取当前字的线数组
-                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
-                        {
-                            var line = lines[dLineNum];         //获取当前线的点数组
-                            drawFigure.beginPath();             //设置折线路径
-                            var myPoint = new Array(2);
-                            myPoint[0] = spinX(origin + line[0][0]*interval, 50 + (16-line[0][1])*interval,signX,signY);
-                            myPoint[1] = spinY(origin + line[0][0]*interval, 50 + (16-line[0][1])*interval,signX,signY);
-                            drawFigure.moveTo(myPoint[0], myPoint[1]);
-                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
-                            {
-                                myPoint[0] = spinX(origin + line[dPointNum][0]*interval, 50 + (16-line[dPointNum][1])*interval,signX,signY);
-                                myPoint[1] = spinY(origin + line[dPointNum][0]*interval, 50 + (16-line[dPointNum][1])*interval,signX,signY);
-                                drawFigure.lineTo(myPoint[0], myPoint[1]);
-                            }
-                            drawFigure.stroke();                                //绘制线条
-                        }
-                    }
-                    origin = 50;
-                    break;
-                case 5://对称变换
-                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
-                    {
-                        var lines = wordArray[wNum];            //获取当前字的线数组
-                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
-                        {
-                            var line = lines[dLineNum];         //获取当前线的点数组
-                            drawFigure.beginPath();             //设置折线路径
-                            var myPoint = new Array(2);
-                            myPoint[0] = symmrtry(origin + line[0][0]*interval, origin + (16-line[0][1])*interval,signX,signY);
-                            myPoint[1] = symmrtry(origin + line[0][0]*interval, origin + (16-line[0][1])*interval,signX1,signY1);
-                            drawFigure.moveTo(myPoint[0], myPoint[1]);
-                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
-                            {
-                                myPoint[0] = symmrtry(origin + line[dPointNum][0]*interval, origin + (16-line[dPointNum][1])*interval,signX,signY);
-                                myPoint[1] = symmrtry(origin + line[dPointNum][0]*interval, origin + (16-line[dPointNum][1])*interval,signX1,signY1);
-                                drawFigure.lineTo(myPoint[0], myPoint[1]);
-                            }
-                            drawFigure.stroke();                                //绘制线条
-                        }
-                    }
-                    break;
-                case 6://平移
-                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
-                    {
-                        var lines = wordArray[wNum];            //获取当前字的线数组
-                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
-                        {
-                            var line = lines[dLineNum];         //获取当前线的点数组
-                            drawFigure.beginPath();             //设置折线路径
-                            drawFigure.moveTo(translateX(origin + line[0][0]*interval,signX),translateY(origin + (16-line[0][1])*interval,signY));
-                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
-                                drawFigure.lineTo(translateX(origin + line[dPointNum][0]*interval,signX),translateY(origin + (16 - line[dPointNum][1])*interval,signY));
-                            drawFigure.stroke();                                //绘制线条
-                        }
-                    }
-                    break;
-                }
+                return pointX*obliqueNumY + pointY;
             }
-            //绘制16X16的网格
+
+            //比例变换，代号为3
+            //变换X
+            function scaleX(pointX, scaleNumX)
+            {
+                return pointX*scaleNumX;
+            }
+            //变换Y
+            function scaleY(pointY, scaleNumY)
+            {
+                return pointY*scaleNumY;
+            }
+
+            //旋转变换，代号为4
+            //变换X
+            function spinX(pointX, pointY, cos1, sin1)
+            {
+                return pointX*cos1 - pointY*sin1;
+            }
+            //变换Y
+            function spinY(pointX, pointY, cos1, sin1)
+            {
+                return pointX*sin1 + pointY*cos1;
+            }
+            
+            //对称变换，代号为5
+            function symmrtry(pointX, pointY, symmrtryNum1, symmrtryNum2)
+            {
+                return symmrtryNum1*pointX + symmrtryNum2*pointY;
+            }
+
+            //坐标平移,代号为6
+            //平移X
+            function translateX(pointX, translateNumX)
+            {
+                return pointX + translateNumX;
+            }
+            //平移Y
+            function translateY(pointY, translateNumY)
+            {
+                return pointY + translateNumY;
+            }
+
+            /*************************
+            *绘制字，包括两个函数：
+            *绘制网格、绘制
+            ***************************/
+            //根据变形要求绘制16X16的网格
             function createGrid(drawstlye, signX, signY, signX1, signY1)
             {
                 //设置画布网格格式
@@ -361,61 +256,194 @@
                     break;
                 }
             }
-            
-            /*空间变换函数*/
+            //根据变形绘制
+            function drawName(drawstlye, signX, signY, signX1 = 0, signY1 = 0)
+            {
+                createGrid(drawstlye, signX, signY, signX1, signY1);        //绘制网格
+                var drawFigure = myCanvas.getContext("2d");
+                drawFigure.lineWidth = 10;                          //设置字宽
+                drawFigure.strokeStyle = "blue";                    //设置字色
+                
+                switch(drawstlye)
+                {
+                case 0://原始绘制
+                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
+                    {
+                        var sWidth = 200;//wNum * gLength;            //设置字的绘制位置起点
+                        var lines = wordArray[wNum];            //获取当前字的线数组
+                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
+                        {
+                            var line = lines[dLineNum];         //获取当前线的点数组
+                            drawFigure.beginPath();             //设置折线路径
+                            drawFigure.moveTo(origin + line[0][0]*interval, origin + (16-line[0][1])*interval);
+                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
+                                drawFigure.lineTo(origin + line[dPointNum][0]*interval, origin + (16 - line[dPointNum][1])*interval);
+                            drawFigure.stroke();                                //绘制线条
+                        }
+                    }break;
+                case 1:case 2://左斜和耸肩
+                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
+                    {
+                        var lines = wordArray[wNum];            //获取当前字的线数组
+                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
+                        {
+                            var line = lines[dLineNum];         //获取当前线的点数组
+                            drawFigure.beginPath();             //设置折线路径
+                            var myPoint = new Array(2);
+                            myPoint[0] = obliqueX(origin + line[0][0]*interval, origin + (16-line[0][1])*interval,signX);
+                            myPoint[1] = obliqueY(origin + line[0][0]*interval, origin + (16-line[0][1])*interval,signY);
+                            drawFigure.moveTo(myPoint[0], myPoint[1]);
+                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
+                            {
+                                myPoint[0] = obliqueX(origin + line[dPointNum][0]*interval, origin + (16-line[dPointNum][1])*interval,signX);
+                                myPoint[1] = obliqueY(origin + line[dPointNum][0]*interval, origin + (16-line[dPointNum][1])*interval,signY);
+                                drawFigure.lineTo(myPoint[0], myPoint[1]);
+                            }
+                            drawFigure.stroke();                                //绘制线条
+                        }
+                    }
+                    break;
+                case 3://放大缩小
+                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
+                    {
+                        var lines = wordArray[wNum];            //获取当前字的线数组
+                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
+                        {
+                            var line = lines[dLineNum];         //获取当前线的点数组
+                            drawFigure.beginPath();             //设置折线路径
+                            drawFigure.moveTo(scaleX(origin + line[0][0]*interval,signX), scaleY(origin + (16-line[0][1])*interval,signY));
+                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
+                                drawFigure.lineTo(scaleX(origin + line[dPointNum][0]*interval,signX), scaleY(origin + (16 - line[dPointNum][1])*interval,signY));
+                            drawFigure.stroke();                //绘制线条
+                        }
+                    }
+                    break;
+                case 4://旋转
+                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
+                    {
+                        var lines = wordArray[wNum];            //获取当前字的线数组
+                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
+                        {
+                            var line = lines[dLineNum];         //获取当前线的点数组
+                            drawFigure.beginPath();             //设置折线路径
+                            var myPoint = new Array(2);
+                            myPoint[0] = spinX(origin + line[0][0]*interval, 50 + (16-line[0][1])*interval,signX,signY);
+                            myPoint[1] = spinY(origin + line[0][0]*interval, 50 + (16-line[0][1])*interval,signX,signY);
+                            drawFigure.moveTo(myPoint[0], myPoint[1]);
+                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
+                            {
+                                myPoint[0] = spinX(origin + line[dPointNum][0]*interval, 50 + (16-line[dPointNum][1])*interval,signX,signY);
+                                myPoint[1] = spinY(origin + line[dPointNum][0]*interval, 50 + (16-line[dPointNum][1])*interval,signX,signY);
+                                drawFigure.lineTo(myPoint[0], myPoint[1]);
+                            }
+                            drawFigure.stroke();                                //绘制线条
+                        }
+                    }
+                    origin = 50;
+                    break;
+                case 5://对称变换
+                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
+                    {
+                        var lines = wordArray[wNum];            //获取当前字的线数组
+                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
+                        {
+                            var line = lines[dLineNum];         //获取当前线的点数组
+                            drawFigure.beginPath();             //设置折线路径
+                            var myPoint = new Array(2);
+                            myPoint[0] = symmrtry(origin + line[0][0]*interval, origin + (16-line[0][1])*interval,signX,signY);
+                            myPoint[1] = symmrtry(origin + line[0][0]*interval, origin + (16-line[0][1])*interval,signX1,signY1);
+                            drawFigure.moveTo(myPoint[0], myPoint[1]);
+                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
+                            {
+                                myPoint[0] = symmrtry(origin + line[dPointNum][0]*interval, origin + (16-line[dPointNum][1])*interval,signX,signY);
+                                myPoint[1] = symmrtry(origin + line[dPointNum][0]*interval, origin + (16-line[dPointNum][1])*interval,signX1,signY1);
+                                drawFigure.lineTo(myPoint[0], myPoint[1]);
+                            }
+                            drawFigure.stroke();                                //绘制线条
+                        }
+                    }
+                    break;
+                case 6://平移
+                    for (var wNum = 0; wNum < wordNum; wNum++)          //遍历所有读取的字
+                    {
+                        var lines = wordArray[wNum];            //获取当前字的线数组
+                        for (var dLineNum = lines.length - 1; dLineNum >= 0; dLineNum--)
+                        {
+                            var line = lines[dLineNum];         //获取当前线的点数组
+                            drawFigure.beginPath();             //设置折线路径
+                            drawFigure.moveTo(translateX(origin + line[0][0]*interval,signX),translateY(origin + (16-line[0][1])*interval,signY));
+                            for (var dPointNum = 1 ; dPointNum < line.length; dPointNum++)
+                                drawFigure.lineTo(translateX(origin + line[dPointNum][0]*interval,signX),translateY(origin + (16 - line[dPointNum][1])*interval,signY));
+                            drawFigure.stroke();                                //绘制线条
+                        }
+                    }
+                    break;
+                }
+            }
 
-            //左斜变换或耸肩变换，代号为1或2
-            //变换X
-            function obliqueX(pointX, pointY, obliqueNumX)
+            /*********************************
+            *读取文件并转换数据，包括两个函数
+            *读取文件并绘制，将字符串转换为数字
+            *刷新后传换变换形式
+            **********************************/
+            //字符转为数字
+            function nameStr2nameXY(nameStr)
             {
-                return pointX + pointY*obliqueNumX;
-            }
-            //变换Y
-            function obliqueY(pointX, pointY, obliqueNumY)
-            {
-                return pointX*obliqueNumY + pointY;
-            }
+                var lineNum = 0;        //记录已经读取行数
+                var pointNum = 0;       //记录当前线点数
+                var nameXY = new Array();  
+                var strs = nameStr.split("\n");     //设置分割
+                for (var i = 0; i < strs.length ;i++)
+                {
+                    if( i == 0)   //为第一条线增加存储空间
+                    {
+                        nameXY[lineNum] = new Array();
+                        i++;
+                    }
+                    if(strs[i].indexOf("END") >= 0)
+                    {
+                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
+                            return nameXY;
+                        else                                //当前线段结束
+                        {
+                            nameXY[++lineNum] = new Array();
+                            i += 2;
+                            pointNum = 0;
+                        }
+                    }
 
-            //比例变换，代号为3
-            //变换X
-            function scaleX(pointX, scaleNumX)
-            {
-                return pointX*scaleNumX;
+                    //将该点记录进入数组
+                    var XY = strs[i].split(',');
+                    nameXY[lineNum][pointNum] = new Array(2);       //分配存储空间
+                    nameXY[lineNum][pointNum][0] = parseFloat(XY[0]);
+                    nameXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
+                }
             }
-            //变换Y
-            function scaleY(pointY, scaleNumY)
-            {
-                return pointY*scaleNumY;
+            //将文件读并绘制，5秒之后刷新
+            function readNameFile()
+            {  
+                var nameFile = document.getElementById("myNameFile").files[0];  //获取文件
+                var reader=new FileReader();  
+                reader.readAsText(nameFile);  
+                reader.onload = function(e)  
+                {  
+                    wordArray[wordNum++] = nameStr2nameXY(this.result);      //提取文字并存入数组
+                    drawName(0);            //绘制原始图形
+                    setTimeout('loadInTime()',5000); 
+                }     
             }
-
-            //旋转变换，代号为4
-            //变换X
-            function spinX(pointX, pointY, cos1, sin1)
+            //每5秒刷新页面，重新绘制变形后的字
+            function loadInTime()
             {
-                return pointX*cos1 - pointY*sin1;
-            }
-            //变换Y
-            function spinY(pointX, pointY, cos1, sin1)
-            {
-                return pointX*sin1 + pointY*cos1;
-            }
-            
-            //对称变换，代号为5
-            function symmrtry(pointX, pointY, symmrtryNum1, symmrtryNum2)
-            {
-                return symmrtryNum1*pointX + symmrtryNum2*pointY;
-            }
-
-            //坐标平移,代号为6
-            //平移X
-            function translateX(pointX, translateNumX)
-            {
-                return pointX + translateNumX;
-            }
-            //平移Y
-            function translateY(pointY, translateNumY)
-            {
-                return pointY + translateNumY;
+                //改变变形编号
+                signChange = changeList[changeNum++];
+                //利用新的变形参数绘制
+                drawName(signChange[0], signChange[1], signChange[2], signChange[3], signChange[4]);
+                //7种变形全部绘制完成
+                if (changeNum == 7) 
+                    return;
+                //刷新进行下一次绘制
+                setTimeout('loadInTime()',5000);
             }
         </script>     
     </body>    

@@ -2,34 +2,39 @@
 <html>
     <head>
         <title>最佳工作序列</title>
+        <meta name = "author" content = "10160311 邓珣">
     </head>
     <body>
         <script type="text/Javascript">
-        //设定原始数据
+        //设定原始数据，工作数量、属性
         var jobNum = 4;
+        var raw = { id:"任务", time:"时间", ddl:"最后完成期限", value:"价值"};
         var job1 = { id:1, time:4, ddl:10, value:2};
         var job2 = { id:2, time:3, ddl:8, value:3};
         var job3 = { id:3, time:2, ddl:4, value:3};
         var job4 = { id:4, time:1, ddl:2, value:6};
-        var raw = { id:"任务", time:"时间", ddl:"最后完成期限", value:"价值"};
         var allJob = new Array(job1, job2, job3, job4, raw);
-        createTable();   //绘制表格
         jobSchedul();               //计算序列
-        ///
-        //绘制工作表格
-        ///
+
+        /***************
+        *绘制工作表格
+        ****************/
         function createTable() 
         { 
+            //建立表格
             var table = document.createElement("table"); 
             var tbody = document.createElement("tbody"); 
-            table.border = 1;
+            table.border = 1;       //行列间隔
+
+            //向表格中添加数据
             for(var i = 0; i <= 4; i++) 
             { 
                 var tr = document.createElement("tr"); 
-                var td;
-                var n;
-                if ( i == 0)     n = 4;
-                else    n = i-1;
+                var td, n;
+                if ( i == 0)     
+                    n = 4;
+                else    
+                    n = i-1;
                 td = document.createElement("td");
                 td.innerHTML = allJob[n].id;
                 td.width = 90;
@@ -51,11 +56,15 @@
             } 
             table.appendChild(tbody); 
             document.body.appendChild(table); 
+
+            return;
         } 
-        ///
-        //计算最佳工作序列
-        ///
-        //设置排序方式
+
+        /***********************
+        *计算最佳工作序列
+        *包括排序和工作序列计算
+        ***********************/
+        //设置排序方式，按照工作效益排序
         function compProfit(a, b)
         {
             return ((a.value/a.time) < (b.value/b.time));
@@ -64,35 +73,43 @@
         function FreeDay(slot, ddl, day)
         {
             var count = 0, n = 0;
-
+            //找到空闲的第一天
             for (;slot[n] == true; n++);
-            
+
+            //判断当前工作能否按时完成
             for ( var i = n; i < ddl; i++)
             {
-                for( var j = i; j >= 0; j--)
-                    if(slot[j] == false)    count++;
-                if(count >= day) return i;      //返回当前天数
+                for( var j = i; j >= n; j--)
+                    if(slot[j] == false)    
+                        count++;
+                if(count >= day) 
+                    return i;      //返回当前天数
                 count = 0;
             }
+
             return 0;       //工作不能完成
         }
-        //进行计算
+        //工作序列计算
         function jobSchedul()
         {
-            //对工作进行排序
+            //绘制工作表格
+            createTable(); 
+            //对工作按照效益进行排序
             allJob.sort(compProfit);
             
-            //找到最迟完成期限
+            //找到所有工作最迟完成期限
             var mDdl = 0;
             for(var i = 0; i < jobNum ; i++)
                 if(allJob[i].ddl > mDdl)
                     mDdl = allJob[i].ddl;
             
-            var result = new Array(mDdl);       //记录完成顺序
+            var result = new Array(mDdl);       //记录完成顺序，有工作为的天数为存储为工作序号
             var slot = new Array(mDdl);         //记录该天是否有工作
-            for ( var i = 0; i < mDdl; i++) slot[i] = false;
+            for ( var i = 0; i < mDdl; i++) 
+                slot[i] = false;
             
-            for ( var i = 0; i < jobNum; i++)   //对工作进行遍历
+            //对工作进行遍历，并计算序列
+            for (var i = 0; i < jobNum; i++)   
             {
                 for(var j = allJob[i].ddl - 1; j >= 0; j--)
                 {
@@ -117,7 +134,10 @@
             //打印工作顺序表
             document.write("本次工作顺序为：")
             for (var i = 0; i < mDdl; i++)
-                if(result[i] >= 0)  document.write(result[i] + " " );
+                if(result[i] >= 0)  
+                    document.write(result[i] + " " );
+            
+            return;
         }
         </script>
     </body>
