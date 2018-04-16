@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>aa</title>
+    </head>
+    <body>
+        选择文件 <input type="file" id="upload">  
+        <script src="js/xlsx.js"></script>
+        <script type = "text/Javascript">
+            function ReadExcel()
+            {
+                var f=document.getElementById("upload");  
+                f.onchange=function(){  
+                    var files=this.files;  
+                    if(files.length>0){  
+                        var file=files[0];  
+                        readDataByType(file);  
+                    }  
+                }  
+                function readDataByType(file){  
+                    var name=file.name, //取得File的名字  
+                    nameArr=name.split("."),   
+                    type=nameArr[nameArr.length-1], //取得文件的扩展名  
+                    reader=new FileReader();  
+                    switch(type){  
+                        case "xls":  
+                        case "xlsx":  
+                        reader.readAsBinaryString(file); //以二进制方式读取文件  
+                        reader.onload=function(f){  
+                            var result=this.result;  
+                            var wb=XLSX.read(result,{type:"binary"}); //以二进制方式读取excel文件  
+                            var sheet=wb.Sheets[wb.SheetNames[0]]; //通过第一个sheet表名找到对应的sheet表  
+                            var jsono=XLSX.utils.sheet_to_row_object_array(sheet); //读取sheet表中的数据为JSON格式  
+                            var data="";  
+                            for(var i in jsono){ //遍历JSON对象  
+                                var str="";  
+                                for(var item in jsono[i]){  
+                                    str+=jsono[i][item]+"  ";  
+                                }  
+                                data+=str+"\n";  
+                            }  
+                        console.log(data);  
+                    }  
+                    break;  
+                }  
+            }  
+        }
+        </script>
+    </body>
+</html>
