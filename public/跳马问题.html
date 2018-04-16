@@ -145,9 +145,9 @@
                             numStep++;          //路径数量
                             document.write("<br>" + "方案" + numStep + ":");
                             //打印经过的点坐标
-                            for (var i = 0 ; i <= step ; i++)    
+                            for (var i = 0 ; i < step ; i++)    
                                 document.write("(" + path[i][0] + "," + path[i][1] + ") ->" );
-                            document.write("<br>");
+                            document.write("(" + path[step][0] + "," + path[step][1] + "<br>");
                             DrawPath( maxX, maxY, path, step);      //绘制路径
                         }//ifx1y1
                         else    //未跳回起点，继续进行递归
