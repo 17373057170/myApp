@@ -6,7 +6,7 @@
         <style type = "text/css">
             body{ margin:0; font-family:"黑体"; font-size:14px; background:#E9E9E9;}
             #container { margin:0 auto; margin-top:5px; width:1200px; padding:5px; background:#FFFFFF;}
-            #header { margin-bottom:10px; background:rgb(187, 181, 181);}
+            #header { margin:0 auto; margin-bottom:10px; padding-top:10px; padding-left:10px; background:lightgray; width: 500px; height: 90px;}
             .containCanvas{ margin:0 auto;background: rgb(243, 215, 220);}
         </style>
     </head>
@@ -24,7 +24,7 @@
                 <input id = "big" type = "button" value = "绘制大圆航线" onclick = "setRouteOn()"/>
             </div>
             <div id = "canvasDiv" class = "containCanvas">
-                    <canvas id = "mapDrawing"/>
+                    <canvas id = "mapDrawing" width = 0 height = 0/>
             </div>
         </div>
     
@@ -32,7 +32,7 @@
             /*********************
             *全局变量
             *投影类型、地理坐标系
-            */
+            *********************/
             var projectSign = 0;        //投影类型代号
             var myMap = new Array();    //首位记录总线段数
             var gCSign = 54;            //标记地理坐标系
@@ -224,59 +224,6 @@
                 return bigCircleList;
             }
 
-            /*****************************
-            *读取地图文件并根据所选投影绘制
-            *****************************/
-            //将字符串形式转换为数字形式
-            function mapStr2mapXY(mapStr)
-            {
-                var lineNum = 1;        //记录已经读取行数
-                var pointNum = 0;       //记录当前线点数
-                var mapXY = new Array();  
-                var strs = mapStr.split("\n");     //设置分割
-                for (var i = 0; i <= strs.length ;i++)
-                {
-                    if( i == 0)   //为第一条线增加存储空间
-                    {
-                        mapXY[lineNum] = new Array();
-                        i++;
-                    }
-                    if(strs[i].indexOf("END") >= 0)
-                    {
-                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
-                        {
-                            mapXY[0] = lineNum;
-                            return mapXY;
-                        }
-                        else                                //当前线段结束
-                        {
-                            mapXY[++lineNum] = new Array(); //为下一条线分配空间
-                            i += 2;
-                            pointNum = 0;
-                        }
-                    }
-
-                    //将该点记录进入数组
-                    var XY = strs[i].split(',');
-                    mapXY[lineNum][pointNum] = new Array(2);       //分配存储空间
-                    mapXY[lineNum][pointNum][0] = parseFloat(XY[0]);
-                    mapXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
-                }//for
-            }
-            //读取文件并绘制
-            function readMapFile()
-            {  
-                projectSign = 0;        //将投影标识设置为0
-                var mapFile = document.getElementById("openMapFile").files[0];  //获取文件
-                var reader = new FileReader();  
-                reader.readAsText(mapFile);  
-                reader.onload=function(e)
-                {
-                    myMap = mapStr2mapXY(this.result)   //将读取的字符串转为数字
-                    drawMap(myMap);     //绘制原始地图
-                }     
-            }
-
             /************************************************************
             *绘制地图，包括3个函数
             *查找当前地图边界、对地图进行投影转换或增加大圆航线的路径、绘制
@@ -423,7 +370,7 @@
 
                 //绘制大圆航线
                 drawCanvas.lineWidth = 3;                           //设置线宽
-                drawCanvas.strokeStyle = "blue";                    //设置线色
+                drawCanvas.strokeStyle = "red";                    //设置线色
                 var lineList = rawDrawPoints[rawDrawPoints[0][0]];
                 drawCanvas.beginPath();
                 drawCanvas.moveTo((lineList[0][0] - minX) * interval, (maxY - lineList[0][1]) * interval);
@@ -432,6 +379,59 @@
                 drawCanvas.stroke();                                //绘制线条
 
                 return;
+            }
+
+            /*****************************
+            *读取地图文件并根据所选投影绘制
+            *****************************/
+            //将字符串形式转换为数字形式
+            function mapStr2mapXY(mapStr)
+            {
+                var lineNum = 1;        //记录已经读取行数
+                var pointNum = 0;       //记录当前线点数
+                var mapXY = new Array();  
+                var strs = mapStr.split("\n");     //设置分割
+                for (var i = 0; i <= strs.length ;i++)
+                {
+                    if( i == 0)   //为第一条线增加存储空间
+                    {
+                        mapXY[lineNum] = new Array();
+                        i++;
+                    }
+                    if(strs[i].indexOf("END") >= 0)
+                    {
+                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
+                        {
+                            mapXY[0] = lineNum;
+                            return mapXY;
+                        }
+                        else                                //当前线段结束
+                        {
+                            mapXY[++lineNum] = new Array(); //为下一条线分配空间
+                            i += 2;
+                            pointNum = 0;
+                        }
+                    }
+
+                    //将该点记录进入数组
+                    var XY = strs[i].split(',');
+                    mapXY[lineNum][pointNum] = new Array(2);       //分配存储空间
+                    mapXY[lineNum][pointNum][0] = parseFloat(XY[0]);
+                    mapXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
+                }//for
+            }
+            //读取文件并绘制
+            function readMapFile()
+            {  
+                projectSign = 0;        //将投影标识设置为0
+                var mapFile = document.getElementById("openMapFile").files[0];  //获取文件
+                var reader = new FileReader();  
+                reader.readAsText(mapFile);  
+                reader.onload=function(e)
+                {
+                    myMap = mapStr2mapXY(this.result)   //将读取的字符串转为数字
+                    drawMap(myMap);     //绘制原始地图
+                }     
             }
         </script>
     </body>

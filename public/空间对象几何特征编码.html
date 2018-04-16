@@ -19,57 +19,7 @@
             var myCanvas = document.createElement("canvas");       
             myCanvas.id = "can";
             document.body.appendChild(myCanvas);
-
-            /*********************************
-            *读取文件并转换数据，包括两个函数
-            *读取文件并绘制，将字符串转换为数字
-            **********************************/
-            //字符转为数字
-            function nameStr2nameXY(nameStr)
-            {
-                var lineNum = 0;        //记录已经读取行数
-                var pointNum = 0;       //记录当前线点数
-                var nameXY = new Array();  
-                var strs = nameStr.split("\n");     //设置分割
-                for (var i = 0; i < strs.length ;i++)
-                {
-                    if( i == 0)   //为第一条线增加存储空间
-                    {
-                        nameXY[lineNum] = new Array();
-                        i++;
-                    }
-                    if(strs[i].indexOf("END") >= 0)
-                    {
-                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
-                            return nameXY;
-                        else                                //当前线段结束
-                        {
-                            nameXY[++lineNum] = new Array();
-                            i += 2;
-                            pointNum = 0;
-                        }
-                    }
-
-                    //将该点记录进入数组
-                    var XY = strs[i].split(',');
-                    nameXY[lineNum][pointNum] = new Array(2);       //分配存储空间
-                    nameXY[lineNum][pointNum][0] = parseFloat(XY[0]);
-                    nameXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
-                }
-            }
-            //将文件读并绘制
-            function readNameFile()
-            {  
-                var nameFile = document.getElementById("myNameFile").files[0];  //获取文件
-                var reader=new FileReader();  
-                reader.readAsText(nameFile);  
-                reader.onload=function(e)  
-                {  
-                    wordArray[wordNum++] = nameStr2nameXY(this.result);      //提取文字并存入数组
-                    //document.write(wordArray[0]);
-                    drawName(wordNum);
-                }     
-            }
+            
             /*************************
             *绘制字，包括两个函数：
             *绘制网格、绘制
@@ -125,6 +75,57 @@
                         drawFigure.stroke();               //绘制线条
                     }
                 }
+            }
+
+            /*********************************
+            *读取文件并转换数据，包括两个函数
+            *读取文件并绘制，将字符串转换为数字
+            **********************************/
+            //字符转为数字
+            function nameStr2nameXY(nameStr)
+            {
+                var lineNum = 0;        //记录已经读取行数
+                var pointNum = 0;       //记录当前线点数
+                var nameXY = new Array();  
+                var strs = nameStr.split("\n");     //设置分割
+                for (var i = 0; i < strs.length ;i++)
+                {
+                    if( i == 0)   //为第一条线增加存储空间
+                    {
+                        nameXY[lineNum] = new Array();
+                        i++;
+                    }
+                    if(strs[i].indexOf("END") >= 0)
+                    {
+                        if(strs[i+1].indexOf("END") >= 0)    //文件结束
+                            return nameXY;
+                        else                                //当前线段结束
+                        {
+                            nameXY[++lineNum] = new Array();
+                            i += 2;
+                            pointNum = 0;
+                        }
+                    }
+
+                    //将该点记录进入数组
+                    var XY = strs[i].split(',');
+                    nameXY[lineNum][pointNum] = new Array(2);       //分配存储空间
+                    nameXY[lineNum][pointNum][0] = parseFloat(XY[0]);
+                    nameXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
+                }
+            }
+            //将文件读并绘制
+            function readNameFile()
+            {  
+                var nameFile = document.getElementById("myNameFile").files[0];  //获取文件
+                var reader=new FileReader();  
+                reader.readAsText(nameFile);  
+                reader.onload=function(e)  
+                {  
+                    wordArray[wordNum++] = nameStr2nameXY(this.result);      //提取文字并存入数组
+                    //document.write(wordArray[0]);
+                    drawName(wordNum);
+                }     
             }
         </script>     
     </body>    
