@@ -1,0 +1,274 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>四叉树</title>
+        <meta name = "author" content = "10160311 邓珣"/>
+        <style type = "text/css">
+            #container{margin:0 auto; width:900px;}
+            #selectFrame {margin:0 auto; padding:10px; border-style:solid; border-width:2px; border-color:#000; width:450px}
+            #writeDiv {float: left; margin-top:20px; padding-top:30px; padding-left:30px;padding-bottom:20px; width:350px; height:430px; font-size: 16px; border-style:solid; border-width:1px; border-color:#000;}
+            #drawDiv {float: right; margin-top:20px; padding:20px; width:430px; height:430px; border-style:solid; border-width:1px; border-color:#000;}
+        </style>
+    </head>
+    <body>
+        <div id = "container">
+            <div id = "selectFrame">
+                选择Quardtr.txt文件<input id = "openFile" type = "file" onchange = "readQuardFile()"/><br>
+            </div>
+        </div>
+        <script type = "text/Javascript">
+            /************************************
+            * 全局变量
+            * 包括矩阵数组、Morton编码后线性四叉树
+            * 行列增加规则
+            *************************************/
+            var matrix = new Array(), mortonMatrix = new Array();
+            var ruleIJ = [[0, 0], [0, 1], [1, 0], [1, 1]]
+            
+
+            /**********************************************
+             * 用morton码将当前矩阵绘制到网页中，包括
+             * 1、矩阵地址反算、将单个区域数据进行运算
+             * 2、绘制单个正方形、绘制全部矩形
+             * **********************************/
+            //morton地址反算
+            function antiAddress(address)
+            {
+                var strLen = address.length;
+                var Ib = "", Jb = "";
+                //按位计算对行和列的贡献
+                for (var n = 0; n < strLen; n++)
+                {
+                    switch(parseInt(address[n]))
+                    {
+                        case 0:
+                            Ib += "0", Jb += "0";
+                            break;          
+                        case 1:
+                            Ib += "0", Jb += "1";
+                            break;
+                        case 2:
+                            Ib += "1", Jb += "0";
+                            break;
+                        case 3:
+                            Ib += "1", Jb += "1";
+                            break;
+                    }
+                }//for
+
+                return Array(parseInt(Ib,2).toString(10), parseInt(Jb, 2).toString(10));
+            }
+
+            //获得单个属性数据的绘制起点，大小和属性值
+            function antiMorton(eachCode, areaSize)
+            {
+                var XY = antiAddress(eachCode.address);
+                var eachAreaSize = areaSize / (Math.pow(2, eachCode.depth));
+                var x = XY[0] * eachAreaSize;
+                var y = XY[1] * eachAreaSize;
+            
+                return {XY:[x,y], size:eachAreaSize, num:eachCode.num};
+            }
+            
+            //绘制正方形，并将数值标在中间
+            function drawSquare(drawCanvas, x, y, side, number)
+            {
+                //定义绘制四个角的顺序
+                var drawRule = [[0, 0], [0, 1], [1, 1], [1, 0]]
+                //绘制正方形
+                drawCanvas.beginPath();
+                drawCanvas.moveTo(y, x);
+                for (var m = 1; m < 4; m++)
+                    drawCanvas.lineTo(y + drawRule[m][1]*side, x + drawRule[m][0]*side);
+                drawCanvas.closePath();
+                drawCanvas.stroke();                                //绘制线条
+
+                //标记属性
+                drawCanvas.font = "20px 黑体";
+                drawCanvas.fillText(number, y + side/2 - 5, x + side/2 + 5);
+
+                return ;
+            }
+            
+            //根据morton码绘制矩阵
+            function drawQuard(mortonMatrix)
+            {
+                var drawDiv = document.createElement("div")
+                drawDiv.id = "drawDiv";
+                document.getElementById("container").appendChild(drawDiv);
+                //创建画布
+                var canvas = document.createElement("canvas")
+                canvas.id = "myCanvas";
+                canvas.width = drawDiv.offsetWidth - 40, canvas.height = drawDiv.offsetHeight - 40;
+                drawDiv.appendChild(canvas);
+                //准备绘制
+                var drawCanvas = canvas.getContext("2d");
+                drawCanvas.lineWidth = 2;                          //设置线宽
+                drawCanvas.strokeStyle = "blue";                    //设置线色
+                var gradInterval = 48;                              //设置单元网格大小
+                var codeNum = mortonMatrix[mortonMatrix.length - 1][0]  //单元网格的数量
+                var gradNum = mortonMatrix.length - 1;              //morton码记录的块数
+                var drawRule = [[0, 0], [0, 1], [1, 1], [1, 0]]
+                for (var n = 0; n < gradNum; n++)
+                {
+                    var drawData = antiMorton(mortonMatrix[n], codeNum)
+                    drawSquare(drawCanvas, drawData.XY[0] * gradInterval, drawData.XY[1] * gradInterval, drawData.size * gradInterval, drawData.num);
+                }
+
+                return;
+            }
+
+            /**************************************************
+            * morton码算法，包括
+            * 1、再整数前补位0；通过行列号计算morton码中的标号
+            * 2、判断当前区域属性是否全部相等
+            * 3、对区域进行递归计算
+            * 返回数据为四叉树线性编码数组
+            ***************************************************/
+            //整型前补位0
+            function setZero(num, n)
+            {
+                return (Array(n).join(0) + num).slice(-n);
+            }
+
+            //通过横纵坐标计算位置的编号，传入坐标为十进制
+            function countNumber(Id, Jd)
+            {
+                //计算坐标值的二进制数
+                var Ib = parseInt(Id).toString(2), Jb = parseInt(Jd).toString(2);
+                //计算当前数最长长度
+                var numberlen = (Ib.length > Jb.length)? Ib.length: Jb.length;
+                var number = "";        //存储结果的字符串
+    
+                //将缺少的位数补位0
+                Ib = setZero(Ib, numberlen), Jb = setZero(Jb, numberlen);
+
+                //逐位相加，计算地址
+                for (var i = 0; i <numberlen; i++)
+                    number += (parseInt(Ib[i] * 2) + parseInt(Jb[i])).toString();
+    
+                return number;
+            }
+
+            //判断当前区域中的元素是不是全部相等
+            //传入数据为在矩阵中的位置，和区域的大小
+            function judgeEqual(startI, startJ, diGradNum)
+            {
+                var standard = matrix[startI][startJ];      //设置比较标准
+
+                //循环遍历区域中所有的数，查看是否与标准数相等
+                for (var i = 0; i < diGradNum; i++)
+                    for (var j = 0; j < diGradNum; j++)
+                        if (matrix[startI + i][startJ + j] != standard) 
+                            return false;       //有一个数不相等
+
+                return true;                    //循环结束，所有数都相等
+            }
+
+            //利用递归进行当前区域的四叉树编码
+            //传入数据为存储结果的数组、矩阵起始位置、矩阵大小、当前树深度
+            function divisionMatrix(resultArray, startI, startJ, areaGradNum, depth)
+            {
+                //矩阵不能再分割，加入当前区域数据后结束递归
+                if (areaGradNum == 1)
+                {
+                    resultArray.push({address:countNumber(startI, startJ), depth:depth, num:matrix[startI][startJ]}); 
+                    return resultArray;
+                }
+
+                var diGradNum = areaGradNum / 2;        //进行分割后单区域格网数
+    
+                //当前矩阵四个区域进行遍历
+                for (var rule = 0; rule < 4; rule++)
+                {
+                    //当前区域起始位置
+                    var corStartI = startI + diGradNum * ruleIJ[rule][0];
+                    var corStartJ = startJ + diGradNum * ruleIJ[rule][1];
+                    //判断当前一个区域是否值全部相同
+                    //相同，加入数组并继续循环
+                    //不同，向下进行递归，求算更小区域范围内的编码，深度加1
+                    if (judgeEqual(corStartI, corStartJ, diGradNum))
+                        resultArray.push({address:countNumber(corStartI/diGradNum, corStartJ/diGradNum), depth:depth, num:matrix[corStartI][corStartJ]}); 
+                    else
+                        divisionMatrix(resultArray, corStartI, corStartJ, diGradNum, depth + 1);
+                }
+
+                return resultArray;
+            }
+
+            //将当前全局变量中的数据进行morton编码
+            function codingMatrix()
+            {
+                var mortonMatrix = new Array();
+                mortonMatrix = divisionMatrix(mortonMatrix, 0, 0, matrix[matrix.length - 1][0], 1);
+                mortonMatrix.push(matrix[matrix.length - 1]);
+                return mortonMatrix;
+            }
+
+            //在屏幕上打印编码后的数据
+            function printMorton(mortonMatrix)
+            {
+                var codNum = mortonMatrix.length - 1;
+                var writeDiv = document.createElement("div");
+                writeDiv.id = "writeDiv";
+
+                var text = document.createElement("div")
+                text.innerHTML = "morton编码为:<br>"
+                writeDiv.appendChild(text);
+                //将每个编码加入文本
+
+                for (var n = 0; n < codNum; n++)
+                {
+                    text = document.createElement("div")
+                    text.innerHTML = "编码：" + mortonMatrix[n].address + "\t深度：" + mortonMatrix[n].depth + "\t数值：" + mortonMatrix[n].num + '<br>';
+                    writeDiv.appendChild(text);
+                }
+                //将所有装入容器
+                document.getElementById("container").appendChild(writeDiv);
+
+                return ;
+            }
+
+            /*************************************
+            *读取矩阵数据，包括：
+            *1、从网页中读取文件并调用下一步操作
+            *2、将字符串转为数字
+            * ***********************************/
+            function quardStr2quardXY(quardStr)
+            {
+                var quardMatrix = new Array();  
+                var strs = quardStr.split("\n");     //设置分割
+                //获得矩阵的形态，并删除保存矩阵形态的数据行
+                var count = strs.shift().split(",");
+                var countI = parseInt(count[0]), countJ = parseInt(count[1]);
+                
+                //将矩阵中每个数转换为整型形式，并存入二维数组
+                for (var i = 0; i < countI ; i++)
+                {
+                    quardMatrix[i] = new Array(countJ)
+                    var eachStr = strs[i].split(",");
+                    for (var j = 0; j < countJ; j++)
+                        quardMatrix[i][j] = parseInt(eachStr[j])
+                }
+                
+                quardMatrix.push([countI, countJ]);     //将矩阵形态存入数组
+                return quardMatrix;
+            }
+            //读取文件并绘制
+            function readQuardFile()
+            {  
+                var quardFile = document.getElementById("openFile").files[0];  //获取文件
+                var reader = new FileReader();  
+                reader.readAsText(quardFile);  
+                reader.onload = function(e)
+                {
+                    matrix = quardStr2quardXY(this.result)   //将读取的字符串转为数字
+                    mortonMatrix = codingMatrix();
+                    printMorton(mortonMatrix);
+                    drawQuard(mortonMatrix);
+                }     
+            }
+
+        </script>
+    </body>
+</html>

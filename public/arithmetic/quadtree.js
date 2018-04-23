@@ -8,24 +8,20 @@ ruleIJ = [[0, 0], [0, 1], [1, 0], [1, 1]]
 //整型前补位0
 function setZero(num, n)
 {
-    return (Array(n).join(0) + num).slice(-n);
+    return (Array(n).join(0) + num).slice(-n); 
 }
 //通过横纵坐标计算位置的编号，传入坐标为十进制
-function countNumber( Id, Jd)
+function countNumber(Id, Jd)
 {
     var Ib = parseInt(Id).toString(2), Jb = parseInt(Jd).toString(2);
     var numberlen = (Ib.length > Jb.length)? Ib.length: Jb.length;
     var numberArray =  new Array(), number = "";
     
     //将缺少的位数补位0
-    Ib = setZero(Ib, numberlen);
-    Jb = setZero(Jb, numberlen);
-    
-    for (var i = numberlen - 1; i >= 0; i--)
-        numberArray[i] = parseInt(Ib[i] * 2) + parseInt(Jb[i]);
-    for (var i = 0; i < numberlen; i++)
-        number += numberArray[i].toString()
-    
+    Ib = setZero(Ib, numberlen), Jb = setZero(Jb, numberlen);
+    //逐位相加，计算地址
+    for (var i = 0; i <numberlen; i++)
+        number += (parseInt(Ib[i] * 2) + parseInt(Jb[i])).toString();
     return number;
 }
 
@@ -33,7 +29,6 @@ function countNumber( Id, Jd)
 function judgeEqual(startI, startJ, diGradNum)
 {
     var standard = corMatrix[startI][startJ];
-    if (diGradNum == 1) return standard;
     for (var i = 0; i < diGradNum; i++)
     {
         for (var j = 0; j < diGradNum; j++)
@@ -62,7 +57,7 @@ function divisionMatrix(resultArray, startI, startJ, areaGradNum, depth)
         var corStartJ = startJ + diGradNum * ruleIJ[rule][1];
         //判断当前一个区域是否值全部相同
         if (judgeEqual(corStartI, corStartJ, diGradNum))
-            resultArray.push({address:countNumber(corStartI, corStartJ), depth:depth, num:corMatrix[corStartI][corStartJ]}); 
+            resultArray.push({address:countNumber(corStartI / diGradNum, corStartJ / diGradNum), depth:depth, num:corMatrix[corStartI][corStartJ]}); 
         else
         {
             divisionMatrix(resultArray, corStartI, corStartJ, diGradNum, depth + 1);
@@ -70,8 +65,67 @@ function divisionMatrix(resultArray, startI, startJ, areaGradNum, depth)
     }
     return resultArray;
 }
+
+//morton地址反算
+function antiAddress(address)
+{
+    var strLen = address.length;
+    var Ib = "", Jb = "";
+    for (var n = 0; n < strLen; n++)
+    {
+        switch(parseInt(address[n]))
+        {
+            case 0:
+                Ib += "0", Jb += "0";
+                break;          
+            case 1:
+                Ib += "0", Jb += "1";
+                break;
+            case 2:
+                Ib += "1", Jb += "0";
+                break;
+            case 3:
+                Ib += "1", Jb += "1";
+                break;
+        }
+    }//for
+
+    return Array(parseInt(Ib,2).toString(10), parseInt(Jb, 2).toString(10));
+}
+
+//将morton码还原为一般矩阵
+function antiMorton(aaa)
+{
+    var temp = new Array();
+    for (var i = 0; i < 8; i++)
+    {
+        temp[i] = new Array(8);
+    }
+    var len = aaa.length;
+    var big = 8;
+    for (var i = 0; i < len; i++)
+    {
+        var XY = antiAddress(aaa[i].address);
+        var areaBig = big/(Math.pow(2,aaa[i].depth));
+        var x = XY[0]* areaBig;
+        var y = XY[1]* areaBig;
+        var number = aaa[i].num;
+        for (var j = 0; j < areaBig; j++)
+        {
+            for (var m = 0; m < areaBig; m++)
+                temp[x+j][y+m] = number;
+        }
+    }
+    return temp;
+}
 //console.log(Math.log(n)/Math.log(2))
 var resultArray = new Array();
-var temp = divisionMatrix(resultArray, 0, 0, corMatrix.length, 1)
+var ab = divisionMatrix(resultArray, 0, 0, corMatrix.length, 1)
+for (var i = 0; i < ab.length; i++)
+    console.log(ab[i])
+var a = antiAddress(ab[4].address)
+console.log(a[0], a[1])
+var temp = antiMorton(ab)
 for (var i = 0; i < temp.length; i++)
     console.log(temp[i])
+
