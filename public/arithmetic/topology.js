@@ -146,7 +146,6 @@ function arcTran(point2point)
 function judgAngle(point0, point1, point2)
 {
     var  pos = (point0[0] - point2[0])*(point1[1] - point2[1]) - (point0[1] - point2[1])*(point1[0] - point2[0]);
-
     //var pos = (point0[1] - point1[0]) * point2[0] + (point1[0] - point0[0]) * point2[1] + point0[0] * point1[0]-point1[0] * point0[1];
     if (pos > 0)  return 1;
     else if (pos < 0) return -1;
@@ -319,8 +318,194 @@ function left(polyArray)
 }
 
 var linesArray = setArray();
-left(linesArray);
-//读取跟文件，生成点对点表
-//传入数组为
+var polysArray = left(linesArray);
+/*
+var  duobianxing = [1,2,3,4,5,6,1];
+var pointArray = new Array();
+pointArray[0] = 6;
+pointArray[1] = [1,3];
+pointArray[2] = [2,2];
+pointArray[3] = [2,1];
+pointArray[4] = [0,0];
+pointArray[5] = [1,1];
+pointArray[6] = [0,2];
+*/
+//找到当前多边形的上下左右边界
+function findAreaBorder(areaPoints, pointsArray)
+{
+    //设置横竖轴最大最小标志，以墨卡托投影的最大最小值为标志
+    var maxX = -Infinity, maxY = -Infinity, minX = Infinity, minY = Infinity; 
+    var pointNum = areaPoints.length; 
+    var corX, corY;             //当前X，Y
+    for (var j = 0; j < pointNum; j++)
+    {
+        corX = pointsArray[areaPoints[j]][0], corY = pointsArray[areaPoints[j]][1];
+        minX = (corX < minX) ? corX: minX;
+        maxX = (corX > maxX) ? corX: maxX;
+        minY = (corY < minY) ? corY: minY;
+        maxY = (corY > maxY) ? corY: maxY;
+    }//for point j
+
+    return [minX, maxX, minY, maxY];
+}
+
+//计算单个多边形的面积
+function countEachArea(areaPoints, pointsArray)
+{
+    //获得当前多边形边界
+    var areaBorder = findAreaBorder(areaPoints, pointsArray);
+    var minX = areaBorder[0], maxX = areaBorder[1], minY = areaBorder[2], maxY = areaBorder[3];
+    var corArea = 0;            //记录当前所计算的面积
+    var pointsNum = areaPoints.length;      //当前多边形的点数
+    //遍历所有点，根据梯形计算面积
+    for ( var i = 0; i < pointsNum - 1; i++)
+    {
+        //获得点的坐标
+        var x1 = pointsArray[areaPoints[i]][0], y1 = pointsArray[areaPoints[i]][1];
+        var x2 = pointsArray[areaPoints[i + 1]][0], y2 = pointsArray[areaPoints[i + 1]][1];
+        corArea += (((y2 - minY) + (y1 - minY)) * (x2 - x1)) / 2;
+    }
+    return corArea;
+}
+
+//计算所有多边形的面积
+function countArea(topoArray, pointsArray)
+{
+    var areaArray = new Array();        //存储面积的数组
+    for (var i = 1; i <= topoArray[0]; i++)
+        areaArray[i - 1] = [i, countEachArea(topoArray[i], pointsArray)];
+    return areaArray;
+}
+
+//将面积为正的多边形和面积为负的多边形分开并排序
+function sortByarea(polysArea)
+{
+    //设置排序方式，按照面积绝对值从小到大排列
+    function compByArea(a, b)
+    {
+        return (Math.abs(a[1]) > Math.abs(b[1]));
+    }
+
+    //给正负多边形分配数组内存
+    var neAreaPoly = new Array();
+    var conAreaPoly = new Array();
+
+    //对数组证负进行分类
+    var areaNum = polysArea.length;
+    for (var i = 0; i < areaNum; i++)
+    {
+        if(polysArea[i][1] < 0)
+            neAreaPoly.push(polysArea[i]);
+        else
+            conAreaPoly.push(polysArea[i]);
+    }
+
+    //处理负多边形，面积为负绝对值最大的多边形为图像的外侧，删除
+    neAreaPoly.sort(compByArea).pop();
+    //对正负数组进行排序并输出
+    return [neAreaPoly, conAreaPoly.sort(compByArea)];
+}
+
+//判断一个点是否在多边形中
+function judgePinA(point, area)
+{
+    var nCross = 0;         //记录当射线的于多边形的交点数
+    var pointNum = area.length - 1;
+
+    //通过水平射线，遍历多边形每一个点
+    for (var i = 0; i < pointNum; i++)
+    {
+        //记录前后两个点
+        var fPoint = area[i], nPoint = area[i + 1];
+        //线是水平的，跳过
+        if (fPoint[1] == nPoint[1])
+            continue;
+        //如果点在线段的上方或下方，跳过
+        if (point[1] < (fPoint[1]<nPoint[1]? fPoint[1]: nPoint[1]))
+            continue;
+        if (point[1] > (fPoint[1]>nPoint[1]? fPoint[1]: nPoint[1]))
+            continue;
+        //判断横向是否于线段相交
+        if (((point[1]-fpoint[1])*(npoint[0]-fpoint[0])/(npoint[1]-fpoint[1])+fpoint[0]) < point[0])
+            nCross++
+    }
+    //通过相交次数判断是否在内
+    if (nCross % 2 == 1)
+        return true;
+    else
+        return false;
+}
+
+//判断多边形包含关系
+//包含返回是，不包含返回否
+function judgeContain(pointsArray, topoArray, areaArray, neAreaN, conAreaN)
+{
+    //判断面积是否符合
+    if (-areaArray[neAreaN] > areaArray[conAreaN])
+        return false;
+    
+    //判断外接矩形之间的关系
+    //获得最小外接矩形
+    var cR = findAreaBorder(topoArray[conAreaN], pointsArray);
+    var nR = findAreaBorder(topoArray[neAreaN], pointsArray);
+    //判断矩形是否相交或包含，不是返回否
+    if((Math.abs(cR[0]+cR[1]-nR[0]-nR[1]) > (cR[1]-cR[0]+nR[1]-nR[0])) || (Math.abs(cR[2]+cR[3]-nR[2]-nR[3]) > (cR[3]-cR[2]+nR[3]-nR[2])));
+        return false;
+    
+    //判断负多边形的所有点是否都在正多边形中
+    var neAreaPN = topoArray[neAreaN] - 1;
+    for (var i = 0; i < neAreaPN; i++)
+        if (!judgePinA(topoArray[neAreaN][i], topoArray[conAreaN]))
+            return false;
+
+    return true;
+}
+
+//完成岛的判断并构建组合多边形
+function judgeIs(polyArray, topoArray)
+{
+    var pointArray = setPointXY(polyArray);
+    //计算每个多边形的面积
+    var areaCountArray = countArea(topoArray, pointArray);
+    //按照正负分类并排序
+    var temp = sortByarea(areaCountArray);
+    var neAreas = temp[0], conAreas = temp[1];
+    var neAreaNum = neAreas.length, conAreaNum = conAreas.length;
+    
+    //将面积为负的多边形删除
+    for (var i = 0; i <neAreaNum; i++)
+        topoArray.splice(neAreaNum[i][0],1);
+    topoArray[0] = topoArray.length - 1;
+    //增加岛判断因子，0表示简单多边形，其他表示带岛多边形指向的岛
+    for (var i = 1; i <= topoArray[0]; i++)
+        topoArray.unshift(0);
+    
+    //如果没有面积为负的多边形，返回
+    if (neAreaNum == 0)
+        return topoArray;
+
+    //判断包含关系
+    for (var i = 0; i < neAreaNum; i++)
+    {
+        var nArea = neAreas[i][0];
+        for (var j = 0; i < conAreaNum; i++)
+        {
+            cArea = conAreaNum[j][0];
+            if (judgeContain(pointArray, topoArray, areaArray, nArea, cArea))
+            {
+                topoArray[cArea][0] = nArea;
+                continue;
+            }    
+            
+        }
+    }
+    return topoArray;
+}
+
+var aa = sortByarea(countArea(polysArray, setPointXY(linesArray)));
+var ne = aa[0];
+var con = aa[1];
+//岛的判断
+
 
 
