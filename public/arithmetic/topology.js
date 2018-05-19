@@ -1,10 +1,24 @@
-//多边形拓扑生成算法
+//UTF-8
+//左转算法构建多边形
+//作者：10160311
+//最后修改时间：2018.5.19
 
 //设置数组实例
 function setArray()
 {
-    var lineArray = new Array(9);
-    lineArray[0] = 8;
+    /*
+    //环状线测试数据
+    var linesArray = new Array();
+    linesArray[0] = 1;
+    linesArray[1] = new Array(4);
+    linesArray[1][0] = [130,200];
+    linesArray[1][1] = [175,190];
+    linesArray[1][2] = [150,180];
+    linesArray[1][3] = [130,200];
+    */
+    //全部测试数据
+    var lineArray = new Array(12);
+    lineArray[0] = lineArray.length - 1;
     lineArray[1] = new Array(3);
     lineArray[1][0] = [120,210];
     lineArray[1][1] = [180,210];
@@ -38,10 +52,30 @@ function setArray()
     lineArray[8][0] = [30,170];
     lineArray[8][1] = [70,162];
     lineArray[8][2] = [97,174];
+    lineArray[9] = new Array(4);
+    lineArray[9][0] = [130,200];
+    lineArray[9][1] = [175,190];
+    lineArray[9][2] = [150,180];
+    lineArray[9][3] = [130,200];
+    lineArray[10] = new Array(4);
+    lineArray[10][0] = [60,180];
+    lineArray[10][1] = [40,190];
+    lineArray[10][2] = [70,180];
+    lineArray[10][3] = [60,180];
+    lineArray[11] = new Array(4);
+    lineArray[11][0] = [152,180];
+    lineArray[11][1] = [176,190];
+    lineArray[11][2] = [170,176];
+    lineArray[11][3] = [152,180];
 
     return lineArray;
 }
 
+/***************************************** 
+ *操作获得相关数组，输入数据为存储线的数组
+ *获得点坐标数组、点点关系数组（一维、二维）
+ *包括3个传出参数的函数和1个辅助判断函数
+ ****************************************/
 //判断点是否存储在数组中
 function judgePointIn(point, pointArray)
 {
@@ -59,7 +93,6 @@ function judgePointIn(point, pointArray)
     }
     return -1;       //当点不在数组中，返回负值
 }
-
 //设置存储结点的数组
 function setPointXY(polyArray)
 {
@@ -78,7 +111,6 @@ function setPointXY(polyArray)
     points[0] = pointCou - 1;
     return points;
 }
-
 //设置与点点关系数组
 function setPoint2Point(points, polyArray)
 {
@@ -88,12 +120,16 @@ function setPoint2Point(points, polyArray)
     {
         point2point[i] = new Array();
         //遍历所有线 查找与该点相邻的点 并保存联系
-        for ( var j = 1; j <= polyArray[0]; j++)
+        for ( var j = 1; j  <= polyArray[0]; j++)
         {
             var position = judgePointIn(points[i], polyArray[j]);
             //当前线段不包含该点
             if (position < 0)   continue;
-            //加入该点下一个点与该点的联系
+            //存在该点，加入该点下一个点与该点的联系
+            //如果为环状，并且点为线段记录的0号点，记录0号点与其他点的联系
+            if (polyArray[j][polyArray[j].length - 1][0] == polyArray[j][0][0] && polyArray[j][polyArray[j].length - 1][1] == polyArray[j][0][1] && position == 0)
+                point2point[i].push(judgePointIn(polyArray[j][polyArray[j].length - 2],points));
+            //如果不是环状
             if (position + 1 != polyArray[j].length)
             {
                 var pointAddPos = judgePointIn(polyArray[j][position + 1], points);
@@ -113,7 +149,6 @@ function setPoint2Point(points, polyArray)
 
     return point2point;
 }
-
 //根据点点联系数组，建立二维数组记录弧段遍历情况
 function arcTran(point2point)
 {
@@ -140,8 +175,11 @@ function arcTran(point2point)
     return arcArray;
 }
 
-
-
+/***********************************************
+ * 传入数据为点坐标数组、点点关系数组（一维、二维）
+ * 获得左转拓扑构建的所有面并传出
+ * 包括8个函数，只有1个函数的数据作为最终数据传出
+ ***********************************************/
 //判断角度大小，角度小于180°返回1，大于180°返回-1，等于180°返回0
 function judgAngle(point0, point1, point2)
 {
@@ -151,7 +189,6 @@ function judgAngle(point0, point1, point2)
     else if (pos < 0) return -1;
     else    return 0;
 }
-
 //求算两条线之间的角度
 //point0、point1、point2分别表示当前点，前点、后点
 function countAngle(point0, point1, point2)
@@ -169,7 +206,6 @@ function countAngle(point0, point1, point2)
     else 
         return angle;
 }
-
 //判断数组元素是否全为零，是返回false
 //如果不是，返回用过最少的弧段
 function judgeArc(point2point, arcArray, point)
@@ -206,7 +242,6 @@ function judgeArc(point2point, arcArray, point)
 
     return false;
 }
-
 //查找数组中的最小值，并返回下标
 function findMin(valueArray)
 {
@@ -221,7 +256,6 @@ function findMin(valueArray)
 
     return minS;        //返回下标
 }
-
 //通过左转算法得到角度最小的下一条弧度下一条弧段
 function findNextArc(arcUse, pointArray, pointA, pointB)
 {
@@ -242,7 +276,6 @@ function findNextArc(arcUse, pointArray, pointA, pointB)
     //返回左转角度最小的弧段
     return nextArc[findMin(arcsAngle)];
 }
-
 //通过左转算法递归完成单个多边形
 //传出当前多边形的点数组、弧段使用数组
 function completePoly(startP, secondP, pointArray, arcUse, polyPs)
@@ -261,7 +294,6 @@ function completePoly(startP, secondP, pointArray, arcUse, polyPs)
     //返回多边形和弧段数组
     return [polyPs, arcUse];   
 }
-
 //在当前顶点生成所有多边形
 function pointPolys(points, point2point, arcUse, topoPolys, pointA, pointB)
 {
@@ -286,8 +318,7 @@ function pointPolys(points, point2point, arcUse, topoPolys, pointA, pointB)
 
     return [topoPolys,arcUse];
 }
-
-//
+//左转算法，拓扑生成所有多边形
 function left(polyArray)
 {
     var pointsArray = setPointXY(polyArray);            //获得点数组
@@ -317,19 +348,11 @@ function left(polyArray)
     return topoArray;
 }
 
-var linesArray = setArray();
-var polysArray = left(linesArray);
-/*
-var  duobianxing = [1,2,3,4,5,6,1];
-var pointArray = new Array();
-pointArray[0] = 6;
-pointArray[1] = [1,3];
-pointArray[2] = [2,2];
-pointArray[3] = [2,1];
-pointArray[4] = [0,0];
-pointArray[5] = [1,1];
-pointArray[6] = [0,2];
-*/
+/**********************************************
+ * 处理多边形的岛，传入数据为线数据、左转算法结果
+ * 处理所有岛并合并
+ * 包括8个函数，只有1个函数返回最终数组
+ **********************************************/
 //找到当前多边形的上下左右边界
 function findAreaBorder(areaPoints, pointsArray)
 {
@@ -348,7 +371,6 @@ function findAreaBorder(areaPoints, pointsArray)
 
     return [minX, maxX, minY, maxY];
 }
-
 //计算单个多边形的面积
 function countEachArea(areaPoints, pointsArray)
 {
@@ -367,7 +389,6 @@ function countEachArea(areaPoints, pointsArray)
     }
     return corArea;
 }
-
 //计算所有多边形的面积
 function countArea(topoArray, pointsArray)
 {
@@ -376,7 +397,6 @@ function countArea(topoArray, pointsArray)
         areaArray[i - 1] = [i, countEachArea(topoArray[i], pointsArray)];
     return areaArray;
 }
-
 //将面积为正的多边形和面积为负的多边形分开并排序
 function sortByarea(polysArea)
 {
@@ -405,18 +425,29 @@ function sortByarea(polysArea)
     //对正负数组进行排序并输出
     return [neAreaPoly, conAreaPoly.sort(compByArea)];
 }
-
+//去除数组中前一部分的数组元素
+function disArray(myArray)
+{
+    var end = myArray.length;
+    var start = 0;
+    for ( ; start < end; start++)
+       if (myArray[start].length == undefined)
+            break;
+    
+    return myArray.slice(start);
+}
 //判断一个点是否在多边形中
-function judgePinA(point, area)
+function judgePinA(pointsArray, pointN, area)
 {
     var nCross = 0;         //记录当射线的于多边形的交点数
     var pointNum = area.length - 1;
+    var point = pointsArray[pointN];
 
     //通过水平射线，遍历多边形每一个点
     for (var i = 0; i < pointNum; i++)
     {
         //记录前后两个点
-        var fPoint = area[i], nPoint = area[i + 1];
+        var fPoint = pointsArray[area[i]], nPoint = pointsArray[area[i + 1]];
         //线是水平的，跳过
         if (fPoint[1] == nPoint[1])
             continue;
@@ -426,42 +457,83 @@ function judgePinA(point, area)
         if (point[1] > (fPoint[1]>nPoint[1]? fPoint[1]: nPoint[1]))
             continue;
         //判断横向是否于线段相交
-        if (((point[1]-fpoint[1])*(npoint[0]-fpoint[0])/(npoint[1]-fpoint[1])+fpoint[0]) < point[0])
+        var a = (parseFloat(point[1]-fPoint[1]) * parseFloat(nPoint[0]-fPoint[0])) / parseFloat(nPoint[1]-fPoint[1]) + fPoint[0];
+        if (a  < point[0])
             nCross++
     }
     //通过相交次数判断是否在内
     if (nCross % 2 == 1)
         return true;
     else
-        return false;
+        return false; 
 }
-
 //判断多边形包含关系
 //包含返回是，不包含返回否
 function judgeContain(pointsArray, topoArray, areaArray, neAreaN, conAreaN)
 {
     //判断面积是否符合
-    if (-areaArray[neAreaN] > areaArray[conAreaN])
+    if (-areaArray[neAreaN - 1][1] >= areaArray[conAreaN - 1][1])
         return false;
+
+    //判断多边形记录点的起始位置
+    var conPoly = disArray(topoArray[conAreaN]);
+    var nePoly = disArray(topoArray[neAreaN]);
     
     //判断外接矩形之间的关系
     //获得最小外接矩形
-    var cR = findAreaBorder(topoArray[conAreaN], pointsArray);
-    var nR = findAreaBorder(topoArray[neAreaN], pointsArray);
+    var cR = findAreaBorder(conPoly, pointsArray), nR = findAreaBorder(nePoly, pointsArray);
     //判断矩形是否相交或包含，不是返回否
-    if((Math.abs(cR[0]+cR[1]-nR[0]-nR[1]) > (cR[1]-cR[0]+nR[1]-nR[0])) || (Math.abs(cR[2]+cR[3]-nR[2]-nR[3]) > (cR[3]-cR[2]+nR[3]-nR[2])));
+    if ((Math.abs(cR[0]+cR[1]-nR[0]-nR[1]) >= (cR[1]-cR[0]+nR[1]-nR[0])) || Math.abs(cR[2]+cR[3]-nR[2]-nR[3]) >= (cR[3]-cR[2]+nR[3]-nR[2]))
         return false;
     
     //判断负多边形的所有点是否都在正多边形中
-    var neAreaPN = topoArray[neAreaN] - 1;
+    var neAreaPN = nePoly.length - 1;
     for (var i = 0; i < neAreaPN; i++)
-        if (!judgePinA(topoArray[neAreaN][i], topoArray[conAreaN]))
+        if (!judgePinA(pointsArray, nePoly[i], conPoly))
             return false;
 
     return true;
 }
-
+//查询负多边形对应的正多边形
+function qArea(neArea, topoArray)
+{
+    var neAP = neArea.length;
+    for (var i = 1; i <= topoArray[0]; i++)
+    {
+        var topoPoly = disArray(topoArray[i])
+        if(topoPoly.length != neAP)
+            continue;
+        for (var j = 0; j < neAP; j++)
+        {
+            if (neArea[neAP-j-1] != topoPoly[j])    break;      //存在一个数不相等，结束
+            if (j == neAP - 1)  return i;       //所有数都相等，返回多边形编号
+        }
+    }
+}
+//将岛多边形的数组指向岛多边形编号
+function adjustTopo(topoArray)
+{
+    for (var i = 1; i <= topoArray[0]; i++)
+    {
+        var corPoly = topoArray[i];
+        //不存在岛多边形，将岛判别标志设为0
+        if(corPoly[0].length == undefined)    
+        {
+            topoArray[i].unshift(Array(0));
+            continue;   
+        }
+        var temp = new Array();
+        while (corPoly[0].length != undefined)
+        {
+            temp.push(qArea(corPoly[0], topoArray));
+            corPoly.shift();
+        }
+        topoArray[i].unshift(temp);
+    }
+    return topoArray;
+}
 //完成岛的判断并构建组合多边形
+//如果第一位的长度不为0，那么多边形含岛
 function judgeIs(polyArray, topoArray)
 {
     var pointArray = setPointXY(polyArray);
@@ -472,40 +544,34 @@ function judgeIs(polyArray, topoArray)
     var neAreas = temp[0], conAreas = temp[1];
     var neAreaNum = neAreas.length, conAreaNum = conAreas.length;
     
-    //将面积为负的多边形删除
-    for (var i = 0; i <neAreaNum; i++)
-        topoArray.splice(neAreaNum[i][0],1);
-    topoArray[0] = topoArray.length - 1;
-    //增加岛判断因子，0表示简单多边形，其他表示带岛多边形指向的岛
-    for (var i = 1; i <= topoArray[0]; i++)
-        topoArray.unshift(0);
-    
     //如果没有面积为负的多边形，返回
     if (neAreaNum == 0)
-        return topoArray;
+        return adjustTopo(topoArray);
 
     //判断包含关系
-    for (var i = 0; i < neAreaNum; i++)
-    {
-        var nArea = neAreas[i][0];
-        for (var j = 0; i < conAreaNum; i++)
-        {
-            cArea = conAreaNum[j][0];
-            if (judgeContain(pointArray, topoArray, areaArray, nArea, cArea))
-            {
-                topoArray[cArea][0] = nArea;
+    var deleteNArea = new Array();
+    for (var i = 0; i < conAreaNum; i++)
+    {   //遍历所有正多边形，查找含有岛的正多边形
+        var cArea = conAreas[i][0];
+        for (var j = 0; j < neAreas.length; j++)
+        {   //遍历所有负多边形，查看当前多边形是否含有岛
+            var nArea = neAreas[j][0];
+            if (judgeContain(pointArray, topoArray, areaCountArray, nArea, cArea))
+            {   //将负多边形加入正多边形，并在负多边形数组中删除该多变形
+                topoArray[cArea].unshift(topoArray[nArea]);
+                deleteNArea.push(nArea);
+                neAreas.splice(j--, 1);
                 continue;
-            }    
-            
-        }
-    }
-    return topoArray;
+            }//if
+        }//for j
+    }//for i
+
+    //将面积为负的多边形删除
+    function com(a, b) { return a<b;}
+    deleteNArea.sort(com);
+    for (var i = 0; i < deleteNArea.length; i++)
+        topoArray.splice(deleteNArea[i],1);
+    topoArray[0] = topoArray.length - 1;
+
+    return adjustTopo(topoArray);
 }
-
-var aa = sortByarea(countArea(polysArray, setPointXY(linesArray)));
-var ne = aa[0];
-var con = aa[1];
-//岛的判断
-
-
-
