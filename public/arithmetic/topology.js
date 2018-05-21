@@ -1,7 +1,7 @@
 //UTF-8
 //左转算法构建多边形
 //作者：10160311
-//最后修改时间：2018.5.19
+//最后修改时间：2018.5.21
 
 //设置数组实例
 function setArray()
@@ -16,7 +16,7 @@ function setArray()
     linesArray[1][2] = [150,180];
     linesArray[1][3] = [130,200];
     */
-    //全部测试数据
+    //全部测试数据，包含3个岛
     var lineArray = new Array(12);
     lineArray[0] = lineArray.length - 1;
     lineArray[1] = new Array(3);
@@ -71,6 +71,42 @@ function setArray()
     return lineArray;
 }
 
+
+//将从网页中读取的字符串转换为数组形式
+function polyStr2polyXY(polyStr)
+{
+    var lineNum = 1, pointNum = 0;        //记录已经读取行数、当前线点数
+    var polyXY = new Array();  
+    var strs = polyStr.split("\n");     //设置分割
+    for (var i = 0; i <= strs.length ;i++)
+    {
+        if( i == 0)   //为第一条线增加存储空间
+        {
+            polyXY[lineNum] = new Array();
+            i++;
+        }
+        if(strs[i].indexOf("END") >= 0)
+        {
+            if(strs[i+1].indexOf("END") >= 0)    //文件结束
+            {
+                polyXY[0] = lineNum;            //记录总线段的条数
+                return polyXY;
+            }
+            else                                //当前线段结束
+            {
+                polyXY[++lineNum] = new Array(); //为下一条线分配空间
+                i += 2;
+                pointNum = 0;                   //当前线段点数记录归零
+            }
+        }
+
+        //将该点记录进入数组
+        var XY = strs[i].split(',');
+        polyXY[lineNum][pointNum] = new Array(2);       //分配存储空间
+        polyXY[lineNum][pointNum][0] = parseFloat(XY[0]);
+        polyXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
+    }//for
+}
 /***************************************** 
  *操作获得相关数组，输入数据为存储线的数组
  *获得点坐标数组、点点关系数组（一维、二维）
@@ -93,6 +129,7 @@ function judgePointIn(point, pointArray)
     }
     return -1;       //当点不在数组中，返回负值
 }
+
 //设置存储结点的数组
 function setPointXY(polyArray)
 {
@@ -111,6 +148,7 @@ function setPointXY(polyArray)
     points[0] = pointCou - 1;
     return points;
 }
+
 //设置与点点关系数组
 function setPoint2Point(points, polyArray)
 {
@@ -149,6 +187,7 @@ function setPoint2Point(points, polyArray)
 
     return point2point;
 }
+
 //根据点点联系数组，建立二维数组记录弧段遍历情况
 function arcTran(point2point)
 {
@@ -175,6 +214,7 @@ function arcTran(point2point)
     return arcArray;
 }
 
+
 /***********************************************
  * 传入数据为点坐标数组、点点关系数组（一维、二维）
  * 获得左转拓扑构建的所有面并传出
@@ -189,6 +229,7 @@ function judgAngle(point0, point1, point2)
     else if (pos < 0) return -1;
     else    return 0;
 }
+
 //求算两条线之间的角度
 //point0、point1、point2分别表示当前点，前点、后点
 function countAngle(point0, point1, point2)
@@ -206,6 +247,7 @@ function countAngle(point0, point1, point2)
     else 
         return angle;
 }
+
 //判断数组元素是否全为零，是返回false
 //如果不是，返回用过最少的弧段
 function judgeArc(point2point, arcArray, point)
@@ -242,6 +284,7 @@ function judgeArc(point2point, arcArray, point)
 
     return false;
 }
+
 //查找数组中的最小值，并返回下标
 function findMin(valueArray)
 {
@@ -256,6 +299,7 @@ function findMin(valueArray)
 
     return minS;        //返回下标
 }
+
 //通过左转算法得到角度最小的下一条弧度下一条弧段
 function findNextArc(arcUse, pointArray, pointA, pointB)
 {
@@ -276,6 +320,7 @@ function findNextArc(arcUse, pointArray, pointA, pointB)
     //返回左转角度最小的弧段
     return nextArc[findMin(arcsAngle)];
 }
+
 //通过左转算法递归完成单个多边形
 //传出当前多边形的点数组、弧段使用数组
 function completePoly(startP, secondP, pointArray, arcUse, polyPs)
@@ -294,6 +339,7 @@ function completePoly(startP, secondP, pointArray, arcUse, polyPs)
     //返回多边形和弧段数组
     return [polyPs, arcUse];   
 }
+
 //在当前顶点生成所有多边形
 function pointPolys(points, point2point, arcUse, topoPolys, pointA, pointB)
 {
@@ -318,6 +364,7 @@ function pointPolys(points, point2point, arcUse, topoPolys, pointA, pointB)
 
     return [topoPolys,arcUse];
 }
+
 //左转算法，拓扑生成所有多边形
 function left(polyArray)
 {
@@ -348,10 +395,11 @@ function left(polyArray)
     return topoArray;
 }
 
+
 /**********************************************
  * 处理多边形的岛，传入数据为线数据、左转算法结果
  * 处理所有岛并合并
- * 包括8个函数，只有1个函数返回最终数组
+ * 包括10个函数，只有1个函数返回最终数组
  **********************************************/
 //找到当前多边形的上下左右边界
 function findAreaBorder(areaPoints, pointsArray)
@@ -371,6 +419,7 @@ function findAreaBorder(areaPoints, pointsArray)
 
     return [minX, maxX, minY, maxY];
 }
+
 //计算单个多边形的面积
 function countEachArea(areaPoints, pointsArray)
 {
@@ -389,6 +438,7 @@ function countEachArea(areaPoints, pointsArray)
     }
     return corArea;
 }
+
 //计算所有多边形的面积
 function countArea(topoArray, pointsArray)
 {
@@ -397,6 +447,7 @@ function countArea(topoArray, pointsArray)
         areaArray[i - 1] = [i, countEachArea(topoArray[i], pointsArray)];
     return areaArray;
 }
+
 //将面积为正的多边形和面积为负的多边形分开并排序
 function sortByarea(polysArea)
 {
@@ -425,6 +476,7 @@ function sortByarea(polysArea)
     //对正负数组进行排序并输出
     return [neAreaPoly, conAreaPoly.sort(compByArea)];
 }
+
 //去除数组中前一部分的数组元素
 function disArray(myArray)
 {
@@ -436,6 +488,7 @@ function disArray(myArray)
     
     return myArray.slice(start);
 }
+
 //判断一个点是否在多边形中
 function judgePinA(pointsArray, pointN, area)
 {
@@ -467,6 +520,7 @@ function judgePinA(pointsArray, pointN, area)
     else
         return false; 
 }
+
 //判断多边形包含关系
 //包含返回是，不包含返回否
 function judgeContain(pointsArray, topoArray, areaArray, neAreaN, conAreaN)
@@ -494,6 +548,7 @@ function judgeContain(pointsArray, topoArray, areaArray, neAreaN, conAreaN)
 
     return true;
 }
+
 //查询负多边形对应的正多边形
 function qArea(neArea, topoArray)
 {
@@ -510,6 +565,7 @@ function qArea(neArea, topoArray)
         }
     }
 }
+
 //将岛多边形的数组指向岛多边形编号
 function adjustTopo(topoArray)
 {
@@ -532,8 +588,9 @@ function adjustTopo(topoArray)
     }
     return topoArray;
 }
-//完成岛的判断并构建组合多边形
-//如果第一位的长度不为0，那么多边形含岛
+
+//完成岛的判断并构建组合多边形，如果第一位的长度不为0，那么多边形含岛
+//返回添加岛后的数组
 function judgeIs(polyArray, topoArray)
 {
     var pointArray = setPointXY(polyArray);
@@ -574,4 +631,139 @@ function judgeIs(polyArray, topoArray)
     topoArray[0] = topoArray.length - 1;
 
     return adjustTopo(topoArray);
+}
+
+
+/***********************************************
+ * 绘制多边形拓扑结果和图形到网页
+ * 传入数组为先数据和多边形数据，无传出
+ * 包括5个函数，其中1个输出文本，4个绘制图形并标号
+ ***********************************************/
+//找到二维数组中所有点的边界
+function findBorder(pointArray)
+{
+    var maxX = -Infinity, maxY = -Infinity, minX = Infinity, minY = Infinity; 
+    var pointNum = pointArray.length;
+    for (var i = pointArray[0].length == undefined? 0: 1; i < pointNum; i++)
+    {
+        var corX = pointArray[i][0], corY = pointArray[i][1];
+        if (corX < minX)    minX = corX;
+        if (corX > maxX)    maxX = corX;
+        if (corY < minY)    minY = corY;
+        if (corY > maxY)    maxY = corY;
+    }
+    return [minX, maxX, minY, maxY];
+}
+//绘制拓扑面
+//绘制单个面
+function drawPoly(polyPoints, pointArray, polyNum, pCanvas, dScale, yMax, color)
+{
+    //找到开始记录数据的下标
+    var start = polyPoints.length == undefined? 0: 1;
+    var pointNum = polyPoints.length;
+    var poly = new Array();
+    for (var i = start; i < pointNum; i++)
+        poly.push(pointArray[polyPoints[i]]);
+    pCanvas.fillStyle = color;                    //设置线色
+    pCanvas.beginPath();
+    pCanvas.moveTo(poly[0][0] * dScale, (yMax - poly[0][1]) * dScale + 100);
+    for (var i = 0; i < pointNum - start; i++)
+        pCanvas.lineTo(poly[i][0] * dScale, (yMax - poly[i][1]) * dScale + 100);
+    pCanvas.closePath();
+    pCanvas.fill();
+
+    return ;
+}
+//标注多边形
+function lablePoly(topoArray, pointArray, pCanvas, dScale, yMax)
+{
+    for (var i = 1; i <= topoArray[0]; i++)
+    {
+        var pointNum = topoArray[i].length;
+        var start = topoArray[i].length == undefined? 0: 1;
+        var poly = new Array();
+        for (var j = start; j < pointNum; j++)
+            poly.push(pointArray[topoArray[i][j]]);
+        //找到多边形的边界
+        var polyBorder = findBorder(poly);
+        pCanvas.font = "20px 黑体";
+        pCanvas.fillStyle = "black";
+        pCanvas.fillText("A" + String(i), polyBorder[0] * dScale, (yMax - polyBorder[3] + 8) * dScale + 100);
+    }
+    return ;
+}
+//绘制所有面，并处理岛
+function draw(topoArray, polyArray)
+{
+    //获得数据
+    var points = setPointXY(polyArray);
+    var border = findBorder(points);
+    var dataWidth = border[1] - border[0], dataHeight = border[3] - border[2];
+    //创建div
+    var drawDiv = document.createElement("div")
+    drawDiv.id = "drawDiv";
+    document.getElementById("container").appendChild(drawDiv);
+    //创建画布并加入到div
+    var canvas = document.createElement("canvas");
+    canvas.id = "myCanvas";
+    canvas.width = drawDiv.offsetWidth, canvas.height = drawDiv.offsetHeight;
+    drawDiv.appendChild(canvas);
+    var drawCanvas = canvas.getContext("2d");
+    drawCanvas.lineWidth = 2;                          //设置线宽
+
+    //获得绘制比例尺
+    var scale = canvas.width / (dataWidth + border[0]*2);
+    //开始逐个多边形绘制
+    //设置颜色数组
+    var colors = ["red", "orange", "yellow", "green", "blue", "purple", "gray"];
+    var recordIs = new Array();     //记录岛多边形
+    for (var i = 1; i <= topoArray[0]; i++)
+    {
+        //如果多边形存在岛，将岛记录下来
+        if (topoArray[i][0].length != 0) recordIs.push(topoArray[i][0]);
+        //绘制多边形
+        drawPoly(topoArray[i], points, i, drawCanvas, scale, border[3], colors[i%7]);
+    }
+    //重新绘制岛，岛的颜色统一为粉色
+    for (var i = 0; i < recordIs.length; i++)
+        for (var j = 0; j < recordIs[i].length; j++)
+            drawPoly(topoArray[recordIs[i][j]], points, recordIs[i][j], drawCanvas, scale, border[3], "pink")
+                
+    //标注多边形
+    lablePoly(topoArray, points, drawCanvas, scale, border[3]);
+
+    return ;
+}
+//将结果显示到屏幕上
+function showResult(polyArray)
+{
+    //创建div
+    var writeDiv = document.createElement("div");
+    writeDiv.id = "writeDiv";
+    //创建文本
+    var text = document.createElement("div");
+    text.innerHTML = "左转算法结果:<br>";
+    writeDiv.appendChild(text);
+    //循环遍历数组，将数组中的数据输出
+    for (var i = 1; i <= polyArray[0]; i++)
+    {
+        text = document.createElement("div");
+        str = "  A" + i + ":";
+        var corPoly = polyArray[i], pointNum = corPoly.length;
+        if (corPoly[0].length != 0)
+        {
+            var temp = ""
+            for (var j = 0; j < corPoly[0].length; j++)
+                temp += String(corPoly[0][j]) + " ";
+            str += "（含岛：" + temp + ")";
+        }
+        str += " " + corPoly[1];
+        for (var j = 2; j < pointNum; j++)
+            str += "->" + corPoly[j] + " ";
+        text.innerHTML = str + "<br>";
+        writeDiv.appendChild(text);
+    }//for
+    //将所有装入容器
+    document.getElementById("container").appendChild(writeDiv);
+    return ;
 }
