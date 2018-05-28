@@ -632,7 +632,7 @@ function judgeIs(polyArray, topoArray)
 
     return adjustTopo(topoArray);
 }
-
+judgeIs(setArray(), left(setArray()));
 
 /***********************************************
  * 绘制多边形拓扑结果和图形到网页
