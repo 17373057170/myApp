@@ -17,7 +17,9 @@ function setPoly()
     return poly;
 }
 
-var drawSign = 0;           //绘制标志，偶数为绘制平行线纹理
+var polyArray = new Array();    //存储地图图层的数组
+var layerNum = 0;               //记录当前图层数，和绘制纹理标志
+var WAL = new Array(4);         //记录当前地图绘制的范围minx,miny,width,height
 
 /****************************************************
  * 根据绘制的角度，绘制的间隔，确定图像或线条要绘制的位置
@@ -214,81 +216,157 @@ function findBorder(pointArray)
     return [minX, maxX, minY, maxY];
 }
 //根据当前文件数设置纹理绘制数据
-function setStyle()
+function setStyle(dScale, drawSign)
 {
-    if (drawSign % 2 == 0)  //绘制平行线纹理
-        return {veinData:{interval:4, angle:1}, lineColor:'black'};
+    if (drawSign == 0)      //绘制平行线纹理
+        return {veinData:{interval:4, angle:1}, lineColor:'black' ,lineQuality: 1/dScale};
     else                    //绘制点图像填充纹理
-        return {veinData:{interval:4, angle:0}, lineColor:'green'};
+        return {veinData:{interval:3, angle:0.0001}, lineColor:'green', radis: 2/dScale};
 }
 //绘制单个面的边界
-function drawPoly(poly, pCanvas, dScale, border)
+function drawPoly(poly, pCanvas)
 {
     //找到开始记录数据的下标
     var pointNum = poly.length;
     pCanvas.beginPath();
-    pCanvas.moveTo((poly[0][0] - border[0]) * dScale, (border[3] - (poly[0][1] - border[2])) * dScale);
-    for (var i = 0; i < pointNum - start; i++)
-        pCanvas.lineTo((poly[i][0] - border[0]) * dScale, (border[3] - (poly[i][1] - border[2])) * dScale);
+    pCanvas.moveTo(poly[0][0], poly[0][1]);
+    for (var i = 0; i < pointNum; i++)
+        pCanvas.lineTo(poly[i][0], poly[i][1]);
     pCanvas.closePath();
     pCanvas.stroke();
 
     return ;
 }
-//绘制单个纹理线段
-function drawEachLine(line, pCanvas, dScale, border, veinData)
+//绘制圆形点状物
+function drawPoint(point, r, shift, pCanvas)
 {
-    if (drawSign % 2 == 0)  //绘制平行线纹理
-        pCanvas.lineWidth = 2;                           //设置线宽
-        pCanvas.strokeStyle = drawStyle.lineColor;       //设置线色
+    //绘制两个位置不同的圆形
+    pCanvas.fillStyle="green";
+    pCanvas.beginPath();
+    pCanvas.arc(point[0], point[1], r, 0, Math.PI*2, true); 
+    pCanvas.closePath();
+    pCanvas.fill();
+    pCanvas.fillStyle="black";
+    pCanvas.beginPath();
+    pCanvas.arc(point[0], point[1] + shift, r, 0, Math.PI*2, true); 
+    pCanvas.closePath();
+    pCanvas.fill();
+}
+//分割线段，圆形绘制在相应的位置上
+function cutLine(line, pInterval)
+{
+    //初始化点数组
+    var points = new Array();
+    //求算线段长度
+    var lineLen = Math.sqrt(Math.pow(line[0][0] - line[1][0], 2) + Math.pow(line[0][1] - line[1][1], 2));
+    //线段上需要绘制的点数
+    var pointNum = parseInt(lineLen/pInterval);
+    //将点加入点数组，并返回数组
+    for (var i = 1; i <= pointNum; i++)
+        points.push([line[0][0] + pInterval*i, line[0][1]]);
+    
+    return points;
+}
+//绘制单个纹理线段
+function drawEachLine(line, pCanvas, drawData, drawSign)
+{
+    var lineData = drawData.veinData;
+    if (drawSign == 0)  //绘制平行线纹理
+    {
+        pCanvas.lineWidth = lineData.lineQuality;                           //设置线宽
+        pCanvas.strokeStyle = drawData.lineColor;       //设置线色
         pCanvas.beginPath();
-        pCanvas.moveTo((line[0][0] - border[0]) * dScale, (border[3] - (line[0][1] - border[2])) * dScale);
-        pCanvas.lineTo((line[1][0] - border[0]) * dScale, (border[3] - (line[1][1] - border[2])) * dScale);
+        pCanvas.moveTo(line[0][0], line[0][1]);
+        pCanvas.lineTo(line[1][0], line[1][1]);
         pCanvas.closePath();
         pCanvas.stroke();
-
+    }
+    if (drawSign == 1)
+    {
+        //获得绘制的点数据
+        var pInterval = drawData.veinData.interval / 2;     //点间隔
+        var pointArray = cutLine(line, pInterval * 2);
+        var pointNum = pointArray.length;
+        //循环，绘制所有点
+        for (var i = 0; i < pointNum; i++)
+            drawPoint(pointArray[i], drawData.radis, pInterval, pCanvas);
+    }
 
 }
 //绘制单个图形的纹理
-function drawVein(veins, pCanvas, dScale, border, veinData)
+function drawVein(veins, pCanvas, drawData, drawSign)
 {
     //获得纹理条数
     var lineNum = veins.length;
     for (var i = 0; i < lineNum; i++)
-        drawEachLine(veins[i], pCanvas, dScale, border, veinData);
+        drawEachLine(veins[i], pCanvas, drawData, drawSign);
 }
 
 //绘制图形数组和绘制样式绘制
 function draw(polyArray)
 {
-    //找到所有地物的边界
-    var border = findBorder(polyArray);
+    var corPolyArray = polyArray[layerNum - 1];         //获得当前地图
+    var drawDiv, canvas;         //定义div，canvas
+    //找到当前地图所有地物的边界，并加载到全局变量中记录下来
+    var border = findBorder(corPolyArray);
     var dataWidth = border[1] - border[0], dataHeight = border[3] - border[2];
-    //创建div
-    var drawDiv = document.createElement("div")
-    drawDiv.id = "drawDiv";
-    document.getElementById("container").appendChild(drawDiv);
-    //创建画布并加入到div
-    var canvas = document.createElement("canvas");
-    canvas.id = "myCanvas";
-    canvas.width = drawDiv.offsetWidth, canvas.height = drawDiv.offsetHeight;
-    drawDiv.appendChild(canvas);
+    if (layerNum == 1)      //第一次加载地图，创建Div和canvas
+    {
+        WAL = [border[0], border[2], dataWidth, dataHeight];          //记录当前地图范围
+        //创建div，并加入网页中
+        drawDiv = document.createElement("div")
+        drawDiv.id = "drawDiv";
+        document.getElementById("container").appendChild(drawDiv);
+        //创建画布并加入到div
+        canvas = document.createElement("canvas");
+        canvas.id = "myCanvas";
+        drawDiv.appendChild(canvas);        //加入到div中
+    }
+    else                    //不是第一次加载地图，修改Div和canvas的宽高
+    {
+        //获得div和canvas
+        drawDiv = document.getElementById("drawDiv");
+        canvas = document.getElementById("myCanvas");
+        //确定当前地图的长宽与之前的关系，确定最终长宽，并记录
+        dataWidth = WAL[2] < dataWidth? dataWidth: WAL[2];
+        dataHeight = WAL[3] < dataHeight? dataHeight: WAL[3];
+        //重新确定起始位置
+        border[0] = WAL[0] < border[0]? WAL[0]: border[0];
+        border[2] = WAL[1] < border[2]? WAL[1]: border[2];
+        WAL = [border[0], border[2], dataWidth, dataHeight];
+    }
+    //设置div的高度
+    drawDiv.style.height = dataHeight * (drawDiv.offsetWidth / dataWidth) + "px";
+    //设置canvas长宽
+    canvas.width = drawDiv.offsetWidth, canvas.height = drawDiv.offsetHeight
+    //获得绘制句柄
     var drawCanvas = canvas.getContext("2d");
-    drawCanvas.lineWidth = 2;                          //设置线宽
     //获得绘制比例尺
-    var scale = canvas.width / dataWidth;
-    //获得根据当前文件数设置纹理绘制数据
-    var drawStyle = setStyle();
-    drawCanvas.strokeStyle = drawStyle.lineColor;                    //设置线色
+    var scale = (canvas.width - 20) / dataWidth;
+    //缩小画布比例尺，并翻转画布，使坐标原点位于画布左下角，并与边界上下留出间隔
+    drawCanvas.translate(10, canvas.height * (1 - 10/canvas.width));
+    drawCanvas.scale(scale, -scale);
+    //移动坐标系，使绘制从最小值开始
+    drawCanvas.translate(-border[0], -border[2]);          
+    //依次绘制所有图层
+    for (var i = 0; i < layerNum; i++)
+    {
+        corPolyArray = polyArray[i];        //获得图层数据
+        var drawSign = corPolyArray[corPolyArray.length - 1];  //获得当前纹理绘制标志
+        //获得根据当前文件数设置纹理绘制数据
+        var drawStyle = setStyle(scale, drawSign);
+        drawCanvas.strokeStyle = drawStyle.lineColor;       //设置边界线色
+        drawCanvas.lineWidth = 1 / scale;                   //设置边界线宽
 
-    //绘制所有闭合曲线
-    for (var i = 1; i <= polyArray[0]; i++)
-        drawPoly(polyArray[i], drawCanvas, scale, border)
+        //绘制所有闭合曲线边界
+        for (var j = 1; j <= corPolyArray[0]; j++)
+            drawPoly(corPolyArray[j], drawCanvas)
 
-    //绘制纹理
-    var exPolys = allAreaLines(polyArray, drawStyle.veinData);        //获得的纹理绘制数据
-    for (var i = 1; i <= exPolys[0]; i++)
-        drawVein(exPolys[i], drawCanvas, scale, border, drawStyle.veinData);
+        //绘制纹理
+        var exPolys = allAreaLines(corPolyArray, drawStyle.veinData);        //获得的纹理绘制数据
+        for (var j = 1; j <= exPolys[0]; j++)
+            drawVein(exPolys[j], drawCanvas, drawStyle, drawSign);
+    }   
 
 }
 
@@ -330,18 +408,26 @@ function polyStr2polyXY(polyStr)
         polyXY[lineNum][pointNum++][1] = parseFloat(XY[1]);
     }//for
 }
+//判断读取的文件，设置纹理绘制标志
+function setDrawSign(fileName)
+{
+    if (fileName == 'Building.gen')     return 0;
+    else if (fileName == 'vegrgn.gen')  return 1;
+    else
+        document.write("文件名错误");
+}
 //读取文件并并进行相关操作
 function readMapFile()
 {  
     var polyFile = document.getElementById("openMapFile").files[0];  //获取文件
     var reader = new FileReader();  
-    var polyArray = new Array()
     reader.readAsText(polyFile);  
     reader.onload=function(e)
     {
-        polyArray[drawSign] = polyStr2polyXY(this.result);        //将读取的数据转换为字符串形式
-        //draw(polyArray, drawStyle)
-        var exPolys = allAreaLines(polyArray[drawSign++]);        //获得的纹理绘制数据的多边形数据
+        polyArray[layerNum] = polyStr2polyXY(this.result);      //将读取的数据转换为字符串形式
+        polyArray[layerNum++].push(setDrawSign(polyFile.name))  //每个图层的数组最后一位放置纹理绘制标志
+        draw(polyArray);                                        //绘制图层
+        //var exPolys = allAreaLines(polyArray[drawSign++]);        //获得的纹理绘制数据的多边形数据
     }
 }
 //console.log(acLines([0,10,0,10], Math.sqrt(2),1));
