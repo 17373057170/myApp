@@ -17,6 +17,11 @@ function setPoly()
     return poly;
 }
 
+
+/****************************************
+ * 全局变量
+ * 记录当前输入的所有多边形数据和数据范围
+ ****************************************/
 var polyArray = new Array();    //存储地图图层的数组
 var layerNum = 0;               //记录当前图层数，和绘制纹理标志
 var WAL = new Array(4);         //记录当前地图绘制的范围minx,miny,width,height
@@ -127,7 +132,6 @@ function com(a, b)
 { 
     return a[0] > b[0];
 }
-
 //计算线和多边形的交点个数，并记录
 //多边形由点集组成，线[斜率，经过的点坐标]
 function judgeL2A(poly, line)
@@ -192,9 +196,9 @@ function allAreaLines(polys, lineData)
 }
 
 
-/**
+/**********************
  * 绘制所有图形和纹理
- */
+ *********************/
 //找到所有图形的边界
 function findBorder(pointArray)
 {
@@ -237,22 +241,21 @@ function drawPoly(poly, pCanvas)
 
     return ;
 }
-//绘制圆形点状物
-function drawPoint(point, r, shift, pCanvas)
+//绘制矩形点状物
+function drawPoint(point, pInterval, pCanvas)
 {
-    //绘制两个位置不同的圆形
-    pCanvas.fillStyle="green";
-    pCanvas.beginPath();
-    pCanvas.arc(point[0], point[1], r, 0, Math.PI*2, true); 
-    pCanvas.closePath();
-    pCanvas.fill();
-    pCanvas.fillStyle="black";
-    pCanvas.beginPath();
-    pCanvas.arc(point[0], point[1] + shift, r, 0, Math.PI*2, true); 
-    pCanvas.closePath();
-    pCanvas.fill();
+    point[1] =point[1] - pInterval/2;        //重新设置位置
+    var interval = pInterval / 8;
+    //绘制纹理黑色部分
+    pCanvas.fillStyle = "black";                       
+    //pCanvas.fillRect(point[0] - 7*interval, point[1] +  7*interval, 2*interval, 2*interval);                //填充矩形
+    //绘制绿色部分
+    pCanvas.fillStyle = "green";                       
+    pCanvas.fillRect(point[0] - 4*interval, point[1] + 3*interval, interval, interval);                //填充矩形
+    pCanvas.fillRect(point[0] - 3*interval, point[1] + 2*interval, 2*interval, interval);                //填充矩形
+    pCanvas.fillRect(point[0] - interval, point[1] + 3*interval, interval, interval);                //填充矩形
 }
-//分割线段，圆形绘制在相应的位置上
+//分割线段，返回的位置为绘制图形的右下角
 function cutLine(line, pInterval)
 {
     //初始化点数组
@@ -273,8 +276,8 @@ function drawEachLine(line, pCanvas, drawData, drawSign)
     var lineData = drawData.veinData;
     if (drawSign == 0)  //绘制平行线纹理
     {
-        pCanvas.lineWidth = lineData.lineQuality;                           //设置线宽
-        pCanvas.strokeStyle = drawData.lineColor;       //设置线色
+        pCanvas.lineWidth = lineData.lineQuality;                   //设置线宽
+        pCanvas.strokeStyle = drawData.lineColor;                   //设置线色
         pCanvas.beginPath();
         pCanvas.moveTo(line[0][0], line[0][1]);
         pCanvas.lineTo(line[1][0], line[1][1]);
@@ -284,12 +287,12 @@ function drawEachLine(line, pCanvas, drawData, drawSign)
     if (drawSign == 1)
     {
         //获得绘制的点数据
-        var pInterval = drawData.veinData.interval / 2;     //点间隔
-        var pointArray = cutLine(line, pInterval * 2);
+        var pInterval = drawData.veinData.interval;     //点间隔
+        var pointArray = cutLine(line, pInterval);
         var pointNum = pointArray.length;
         //循环，绘制所有点
         for (var i = 0; i < pointNum; i++)
-            drawPoint(pointArray[i], drawData.radis, pInterval, pCanvas);
+            drawPoint(pointArray[i], pInterval, pCanvas);
     }
 
 }
