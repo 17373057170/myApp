@@ -305,6 +305,15 @@ function drawVein(veins, pCanvas, drawData, drawSign)
         drawEachLine(veins[i], pCanvas, drawData, drawSign);
 }
 
+//判断元素是否在数组中
+function findInArray(array, number)
+{
+    var length = array.length;
+    for ( var i = 0; i < length; i++)
+        if (array[i] == number)     //存在于数组中，返回真
+            return true;
+    return false;           //不存在于数组中，返回否
+}
 //绘制图形数组和绘制样式绘制
 function draw(polyArray)
 {
@@ -351,11 +360,19 @@ function draw(polyArray)
     drawCanvas.scale(scale, -scale);
     //移动坐标系，使绘制从最小值开始
     drawCanvas.translate(-border[0], -border[2]);          
-    //依次绘制所有图层
+    //依次绘制所有花纹不重复的图层
+    var drawnSign = new Array();        //记录绘制过的花纹
     for (var i = 0; i < layerNum; i++)
     {
         corPolyArray = polyArray[i];        //获得图层数据
         var drawSign = corPolyArray[corPolyArray.length - 1];  //获得当前纹理绘制标志
+        if (findInArray(drawnSign,drawSign))      //该花纹的图图像已经绘制过，删除并跳过绘制
+        {
+            polyArray.splice(i, 1);
+            continue;
+        }
+        //将花纹存储进入数组，并绘制
+        drawnSign.push(drawSign);               
         //获得根据当前文件数设置纹理绘制数据
         var drawStyle = setStyle(scale, drawSign);
         drawCanvas.strokeStyle = drawStyle.lineColor;       //设置边界线色
@@ -370,7 +387,6 @@ function draw(polyArray)
         for (var j = 1; j <= exPolys[0]; j++)
             drawVein(exPolys[j], drawCanvas, drawStyle, drawSign);
     }   
-
 }
 
 /**
@@ -430,7 +446,7 @@ function readMapFile()
         polyArray[layerNum] = polyStr2polyXY(this.result);      //将读取的数据转换为字符串形式
         polyArray[layerNum++].push(setDrawSign(polyFile.name))  //每个图层的数组最后一位放置纹理绘制标志
         draw(polyArray);                                        //绘制图层
-        //var exPolys = allAreaLines(polyArray[drawSign++]);        //获得的纹理绘制数据的多边形数据
+        //var exPolys = allAreaLines(polyArray[drawSign++]);    //获得的纹理绘制数据的多边形数据
     }
 }
 //console.log(acLines([0,10,0,10], Math.sqrt(2),1));

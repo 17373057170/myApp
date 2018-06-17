@@ -167,7 +167,7 @@ function setPoint2Point(points, polyArray)
             //如果为环状，并且点为线段记录的0号点，记录0号点与其他点的联系
             if (polyArray[j][polyArray[j].length - 1][0] == polyArray[j][0][0] && polyArray[j][polyArray[j].length - 1][1] == polyArray[j][0][1] && position == 0)
                 point2point[i].push(judgePointIn(polyArray[j][polyArray[j].length - 2],points));
-            //如果不是环状
+            //判断当前点的前后连接
             if (position + 1 != polyArray[j].length)
             {
                 var pointAddPos = judgePointIn(polyArray[j][position + 1], points);
