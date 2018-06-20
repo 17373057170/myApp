@@ -1,10 +1,10 @@
 //算法：        矢量栅格相互转换
 //作者：        邓珣    10160311
 //时间：        2018/6/17
-//最后修改时间： 2018/6/17
+//最后修改时间： 2018/6/20
 
 //测试多边形数组
-//building.gen的1、2多边形
+//building.gen的1、2、3多边形
 function testArray()
 {
     var backArray = new Array();
@@ -21,15 +21,28 @@ function testArray()
     backArray[1].push([430137.63900004,3260528.88600003]);
     backArray[2] = new Array();
     backArray[2].push(2);
-    backArray[2].push([430106.436000005,3260495.85700006]);
-    backArray[2].push([430104.854999955,3260497.26699997]);
-    backArray[2].push([430106.947999946,3260499.54199995]);
-    backArray[2].push([430108.542999986,3260497.98199994]);
-    backArray[2].push([430106.436000005,3260495.85700006]);
-    backArray[0] = 2;
+    backArray[2].push([430000,3260489.38812949]);
+    backArray[2].push([430000.402000035,3260489.21299998]);
+    backArray[2].push([430000,3260487.97710501]);
+    backArray[2].push([430000,3260489.38812949]);
+    backArray[3] = new Array();
+    backArray[3].push(3);
+    backArray[3].push([430106.436000005,3260495.85700006]);
+    backArray[3].push([430104.854999955,3260497.26699997]);
+    backArray[3].push([430106.947999946,3260499.54199995]);
+    backArray[3].push([430108.542999986,3260497.98199994]);
+    backArray[3].push([430106.436000005,3260495.85700006]);
+    backArray[0] = 3;
     return backArray;
 }
 
+//颜色数组
+var colorList = ["LightPink", "Green", "LightYellow", "Orchid", "LightSteelBlue", "MediumPurple", "SlateGray", "Blue", "Aqua", "Olive", "Orange", "Red"]
+
+/***********************************
+ * 通过x-扫描线算法，将矢量转为栅格
+ * 主要通过9个函数 绘下不绘上
+ ***********************************/
 //获得所有多边形过或当前多边形的边界
 function findborder(polyArray)
 {
@@ -62,6 +75,18 @@ function moveCoord(polyArray, borderArray, gridSize)
         {
             polyArray[i][j][0] = parseInt((polyArray[i][j][0] - borderArray[0]) / gridSize) + 1;
             polyArray[i][j][1] = parseInt((polyArray[i][j][1] - borderArray[2]) / gridSize) + 1;
+            //如果两个点经过计算重合，将一个点去除
+            if (j != 1 && (polyArray[i][j][0] == polyArray[i][j - 1][0] && polyArray[i][j][1] == polyArray[i][j - 1][1]))
+            {
+                polyArray[i].splice(j--, 1);
+                polyPoints--;
+            }
+        }
+        //如果一个多边形的边数不超过两条边，将该多边形删除
+        if (polyArray[i].length <= 4)
+        {
+            polyArray.splice(i--, 1);
+            polyArray[0]--;
         }
     }
     return polyArray;
@@ -96,12 +121,12 @@ function createET(eachPArray, polyBorder)
         {
             //如果线段的起点不在当前扫描线上，跳过
             if (eachPArray[j][1] != ET[i][0])  continue;
-            //在当前扫描线上，搜索线段的端点加入边表
-            //遍历前后端点，只将向上的线段加入
-            if ((j - 1 != 0) && (eachPArray[j - 1][1] >= eachPArray[j][1]))
+            //在当前扫描线上，搜索线段的端点加入边表，遍历前后端点，只将向上的线段加入
+            //如果线段为水平，删除点
+            if ((j - 1 != 0) && (eachPArray[j - 1][1] >= eachPArray[j][1]) && (eachPArray[j][1] != eachPArray[j - 1][1]))
                 ET[i].push([eachPArray[j][0], eachPArray[j - 1][1],
                     (eachPArray[j][0] - eachPArray[j - 1][0])/(eachPArray[j][1] - eachPArray[j - 1][1])]);
-            if ((j + 1 != polyPoints) && (eachPArray[j + 1][1] > eachPArray[j][1]))
+            if ((j + 1 != polyPoints) && (eachPArray[j + 1][1] > eachPArray[j][1]) && (eachPArray[j][1] != eachPArray[j + 1][1]))
                 ET[i].push([eachPArray[j][0], eachPArray[j + 1][1],
                     (eachPArray[j][0] - eachPArray[j + 1][0])/(eachPArray[j][1] - eachPArray[j + 1][1])]);
         }
@@ -147,6 +172,7 @@ function fillGrid(AET, grid, polyCode)
 }
 
 //通过扫面线和活性边算法，将单个多边形转换为栅格数据
+//绘上不绘下，绘左不绘右
 function transEachPoly2Grid(eachPArray, gridArray)
 {
     var pBorder = findborder(eachPArray).slice(2,4);    //找到当前多边形的上下边界
@@ -159,16 +185,13 @@ function transEachPoly2Grid(eachPArray, gridArray)
         AET = AET.concat(ET[i].slice(1));       //将边表中该扫描线新增线段添加进来
         AET.sort(sortET);                       //将所有线段进行排序
         AET.unshift(ET[i][0]);                  //添加扫描线信息
+        if (AET[1] == undefined)    break;      //扫描线上没有内容，结束转换
         gridArray = fillGrid(AET, gridArray, eachPArray[0]);   //进行栅格转换
-        var inPoint = AET.length;               //相交线段数
         //判断是不是到了顶点，如果与扫描线继续相加，加入下一组活性边表，否则删除
-        for (var j = 1; j < inPoint; j++)
+        for (var j = 1; j < AET.length; j++)
             if (AET[0] + 1 == AET[j][1])    //如果扫描线到此为止，将该线段从活性边表中删除
-            {
                 AET.splice(j--, 1);
-                inPoint--;
-            }
-            else                        //扫描线继续相交，将X坐标进行变换
+            else                            //扫描线继续相交，将X坐标进行变换
                 AET[j][0] = AET[j][0] + AET[j][2];
         //将扫面线信息去除
         AET.shift();
@@ -176,21 +199,164 @@ function transEachPoly2Grid(eachPArray, gridArray)
     return gridArray;
 }
 
+//重新对多边形进行移动，消除已经删除的多边形的影响
+function remove(polys, border)
+{
+    var butt =  border[0] - 1, left = border[2] - 1;
+    for (var i = 1; i <= polys[0]; i++)
+    {
+        var pointNum = polys[i].length;
+        for (var j = 1; j < pointNum; j++)
+        {
+            polys[i][j][0] -= butt;
+            polys[i][j][1] -= left;
+        }
+    }
+    return polys
+}
+
 //遍历所有多边形，将其转为栅格
 function transPoly2Grid(polys)
 {
     var border = findborder(polys);
+    //重新对多边形进行移动，消除已经删除的多边形的影响
+    if (border[0] != 1 || border[2] != 1)
+    {
+        remove(polys, border);
+        border = findborder(polys);
+    }
+    //构建栅格数组
     var grids = createGridArray(border[3] - border[2] + 1, border[1] - border[0] + 1);
-    //遍历所有多边形
+    //遍历所有多边形，生成栅格数据
     for (var i = 1; i <= polys[0]; i++)
         grids = transEachPoly2Grid(polys[i], grids);
     return grids;
 }
-//var polys = moveCoord(testArray(), findborder(testArray()), 0.5);
-//transPoly2Grid(polys)
+
+//算法调试
+//var polys = testArray();
+//var grid = transPoly2Grid(moveCoord(polys, findborder(polys), 0.5));
+//var a = 0;
+
+/*******************************
+ * 绘制矢量和栅格图像
+ * 栅格绘制为等大的正方形的填充
+ *******************************/
+//绘制所有闭合曲线
+function drawPolys(polys, pCanvas)
+{
+    //遍历所有多边形并绘制
+    for (var i = 1; i <= polys[0]; i++)
+    {
+        var poly = polys[i], pointNum = poly.length;
+        pCanvas.strokeStyle = colorList[i % 12];
+        pCanvas.beginPath();
+        pCanvas.moveTo(poly[1][0], poly[1][1]);
+        for (var j = 2; j < pointNum; j++)
+            pCanvas.lineTo(poly[j][0], poly[j][1]);
+        pCanvas.closePath();
+        pCanvas.stroke();
+    }
+}
+
+//绘制矢量图像
+function drawVector(polyArray)
+{
+    //找到当前地图边界
+    var border = findborder(polyArray);
+    var dataWidth = border[1] - border[0], dataHeight = border[3] - border[2];
+    //创建div和画布
+    var drawDiv = document.createElement("div");
+    drawDiv.id = "vectorDiv";
+    document.getElementById("container").appendChild(drawDiv);
+    //定义div高度
+    drawDiv.style.height = dataHeight * (drawDiv.offsetWidth / dataWidth) + "px";
+    //创建canvas并定义长宽
+    var canvas = document.createElement("canvas");
+    canvas.id = "myCanvas";
+    drawDiv.appendChild(canvas);
+    canvas.width = drawDiv.offsetWidth, canvas.height = drawDiv.offsetHeight
+    var drawCanvas = canvas.getContext("2d");       //获得绘制句柄
+    //获得绘制比例尺
+    var scale = (canvas.width - 20) / dataWidth;    //左右各留10px边界
+
+    //处理绘制坐标系
+    //缩小画布比例尺，并翻转画布，使坐标原点位于画布左下角，并与边界上下留出间隔
+    drawCanvas.translate(5, canvas.height * (1 - 10/canvas.width));
+    drawCanvas.scale(scale, -scale);
+    //移动坐标系，使绘制从最小值开始
+    drawCanvas.translate(-border[0], -border[2]);     
+    
+    //绘制多边形
+    drawPolys(polyArray, drawCanvas);
+}
+
+//遍历矩阵，绘制栅格
+function drawCells(grids, pCanvas)
+{
+    for (var i = 1; i <= grids[0][0]; i++)
+        for (var j = 1; j <= grids[0][1]; j++)
+            if (grids[i][j] != 0)
+            {
+                pCanvas.fillStyle = colorList[grids[i][j] % 12];        //设置绘制颜色
+                pCanvas.fillRect(j ,i , 1, 1);
+            }
+}
+
+//绘制栅格图像
+function drawGrid(gridArray)
+{
+    //当前栅格大小
+    var dataWidth = gridArray[0][1], dataHeight = gridArray[0][0];
+    //创建div和画布
+    var drawDiv = document.createElement("div");
+    drawDiv.id = "gridDiv";
+    document.getElementById("container").appendChild(drawDiv);
+    //定义div高度
+    drawDiv.style.height = dataHeight * (drawDiv.offsetWidth / dataWidth) + "px";
+    //创建canvas并定义长宽
+    var canvas = document.createElement("canvas");
+    canvas.id = "myCanvas";
+    drawDiv.appendChild(canvas);
+    canvas.width = drawDiv.offsetWidth, canvas.height = drawDiv.offsetHeight
+    //获得绘制比例尺
+    var scale = (canvas.width - 20) / dataWidth;    //左右各留10px边界
+
+    //处理绘制坐标系
+    var drawCanvas = canvas.getContext("2d");       //获得绘制句柄
+    //缩小画布比例尺，并翻转画布，使坐标原点位于画布左下角，并与边界上下留出间隔
+    drawCanvas.translate(5, canvas.height * (1 - 10/canvas.width));
+    drawCanvas.scale(scale, -scale);
+    //drawCanvas.translate(-border[0], -border[2]);     
+    
+    //绘制栅格
+    drawCells(gridArray, drawCanvas);
+}
+
+/*******************************
+ * 处理拓扑得到的多边形数据
+ * 将岛删除，并将点号换为点坐标
+ *******************************/
+//处理拓扑数据
+function dealTopo(topoArray, points)
+{
+    //将第一个存储岛数据的数组删除并增加多边形编号，并将点号换为坐标
+    for (var i = 1; i <= topoArray[0]; i++)
+    {
+        topoArray[i][0] = i;
+        var pointNum = topoArray[i].length;
+        for (var j = 1; j < pointNum; j++)
+            topoArray[i][j] = points[topoArray[i][j]].slice(0,2);        
+    }
+    return topoArray;
+}
+
 /**********************
  * 算法与网页交互部分
+ * 通过按钮读取文件，并将文件内容转换为字符串形式
+ * 将字符串数据转换为数组数据，并对数据进行操作并绘制
  **********************/
+/*
 //将从网页中读取的字符串转换为数组形式
 function polyStr2polyXY(polyStr)
 {
@@ -202,7 +368,7 @@ function polyStr2polyXY(polyStr)
         if( i == 0)   //为第一条线增加存储空间
         {
             polyXY[lineNum] = new Array();
-            polyXY[lineNum].push(parseInt(str[i++])); //多边形的标号
+            polyXY[lineNum].push(parseInt(strs[i++])); //多边形的标号
         }
         if(strs[i].indexOf("END") >= 0)
         {
@@ -214,7 +380,7 @@ function polyStr2polyXY(polyStr)
             else                                //当前线段结束
             {
                 polyXY[++lineNum] = new Array(); //为下一条线分配空间
-                polyXY[lineNum].push(parseInt(str[i + 1])); //多边形的标号
+                polyXY[lineNum].push(parseInt(strs[i + 1])); //多边形的标号
                 i += 2;
             }
         }
@@ -224,17 +390,20 @@ function polyStr2polyXY(polyStr)
         polyXY[lineNum].push([parseFloat(XY[0]), parseFloat(XY[1])]);       //分配存储空间
     }//for
 }
+*/
 //读取文件并并进行相关操作
-function readMapFile()
+function readFile()
 {  
     var polyFile = document.getElementById("openMapFile").files[0];  //获取文件
     var reader = new FileReader();  
     reader.readAsText(polyFile);  
     reader.onload=function(e)
     {
-        var polys = polyStr2polyXY(this.result);      //将读取的数据转换为字符串形式
-        var grid = transPoly2Grid(polys)              //转为栅格形式
-        draw(grid);                                     //绘制栅格
-        //var exPolys = allAreaLines(polyArray[drawSign++]);    //获得的纹理绘制数据的多边形数据
+        var polys = polyStr2polyXY(this.result);                //将读取的数据转换为字符串形式
+        var topoPoly = judgeIs(polys, left(polys))      //拓扑得到多边形
+        topoPoly = dealTopo(topoPoly, setPointXY(polys))    //处理拓扑数据
+        var grid = transPoly2Grid(moveCoord(topoPoly, findborder(topoPoly), 0.5))              //转为栅格形式
+        drawVector(topoPoly);          //绘制矢量数据
+        drawGrid(grid);             //绘制栅格数据
     }
 }

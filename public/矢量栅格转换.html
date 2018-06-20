@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <title>矢量栅格转换</title>
+        <meta name = "author" content = "10160311 邓珣"/>
+        <style type = "text/css">
+            #container{margin:0 auto; width:1210px;}
+            #selectFrame {margin:0 auto; padding:10px; border-style:solid; border-width:2px; border-color:#000; width:510px;}
+            #vectorDiv {float: left; margin-top:20px; width:600px; font-size: 14px; border-style:solid; border-width:1px; border-color:#000;}
+            #gridDiv {float: right; margin-top:20px; width:600px; border-style:solid; border-width:1px; border-color:#000;}
+        </style>
+    </head>
+    <body>
+        <div id = "container">
+            <div id = "selectFrame">
+                选择building.gen/vegrgn.gen文件<input id = "openMapFile" type = "file" onchange = "readFile()"/><br>
+            </div>
+        </div>
+        <!--导入拓扑算法-->
+        <script type = "text/Javascript" src="javascripts/topology.js"></script>      
+        <script type = "text/Javascript" src="javascripts/v2g.js"></script>      
+    </body>
+</html>
