@@ -17,6 +17,7 @@
                 <input id = "openMapFile" type = "file" onchange = "readMapFile()"/>
                 <div id = "conButton">
                     <input id = "comButton" type = "button" value = "数据压缩" onclick = "onComSign()"/>
+                    输入压缩值<input type="text" id="yadata" />
                 </div>
                 <div id = "canvasDiv" class = "containCanvas">
                     <canvas id = "mapDrawing"/>
@@ -270,7 +271,10 @@
                 mapDraw = LambertTransition(mapDraw);
 
                 if (dataCom)
-                    mapDraw = mapDouglasCom(mapDraw, 1000);
+                {
+                    //var sign = document.getElementById("yadata")[0].value;
+                    mapDraw = mapDouglasCom(mapDraw, 10000);
+                }
 
                 //分别记录压缩前后的数据量
                 if (dataCom)
